@@ -22,28 +22,28 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  try {
-    const res = await fetch('http://localhost:3000/api/students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, class: studentClass, email, password }) // ✅ added password
-    });
+try {
+  const res = await fetch("https://karumande-api.onrender.com/api/students", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, class: studentClass, email, password })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if (!res.ok) {
-      message.textContent = data.message || 'Something went wrong.';
-      message.style.color = 'red';
-    } else {
-      message.textContent = '';
-      modal.classList.remove('hidden');
-      form.reset();
-    }
-  } catch (error) {
-    message.textContent = 'Error connecting to server.';
+  if (!res.ok) {
+    message.textContent = data.message || 'Something went wrong.';
     message.style.color = 'red';
+  } else {
+    message.textContent = '';
+    modal.classList.remove('hidden');
+    form.reset();
   }
-});
+} catch (error) {
+  message.textContent = 'Error connecting to server.';
+  message.style.color = 'red';
+}
+
 
 function closeModal() {
   modal.classList.add('hidden');
