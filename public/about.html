@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Karumande Link School provides CBC-based education fostering holistic development, discipline, and academic excellence." />
+  <title>Karumande Link School</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- Header -->
+    <header>
+      <h2>Karumande Link School</h2>
+      <div class="nav-container">
+        <button class="burger" id="burger" aria-label="Toggle navigation menu">&#9776;</button>
+        <nav id="nav-links">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="#about" class="nav-link">About</a>
+          <a href="#contact" class="nav-link">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Discipline, Hardwork Begets Success</h1>
+    </section>
+
+    <!-- Main Content -->
+    <main id="about">
+      <section class="about-content">
+        <img src="images/school-building.jpg" alt="Karumande Link School campus" loading="lazy" class="about-img" />
+        <h2>About Karumande Link School</h2>
+        <p>Welcome to Karumande Link School, where we are dedicated to providing quality education and fostering a nurturing environment for our learners.</p>
+        <p>Our mission is to empower learners with the knowledge and skills they need to succeed in life. We believe in holistic education that not only focuses on academics but also on character development and social responsibility.</p>
+        <p>Join us in our journey to make a difference in the lives of our learners and the community.</p>
+        <p>Karumande Link School is a leading CBC-based primary & Junior School located along the Karumandi–Kianyaga road.</p>
+      </section>
+
+      <!-- Call to Action -->
+      <section class="cta" id="contact">
+        <h2>Visit or Contact Us Today</h2>
+        <p>We welcome parents, guardians, and the community to be part of our growing family.</p>
+        <a href="tel:+254742052920" class="cta-button">Call Now</a>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <p>Contact us: <a href="mailto:karumandelinkschool@gmail.com">karumandelinkschool@gmail.com</a></p>
+      <p>Follow us:
+        <a href="https://facebook.com/karumandelinkschool" target="_blank">Facebook</a> |
+        <a href="https://twitter.com/karumandelink" target="_blank">Twitter</a>
+      </p>
+      <p>&copy; 2025 Karumande Link School. All rights reserved.</p>
+    </footer>
+
+  </div>
+
+  <!-- Navigation Toggle Script -->
+  <script>
+    document.getElementById("burger").addEventListener("click", function () {
+      document.getElementById("nav-links").classList.toggle("active");
+    });
+  </script>
+</body>
+</html>
