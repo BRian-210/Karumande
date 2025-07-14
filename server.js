@@ -62,11 +62,10 @@ app.post('/api/students', (req, res) => {
   students.push(newStudent);
   // Also register user for login
   users.push({
-    id: users.length + 1,
-    username: email,
-    password
-  });
-
+  id: users.length + 1,
+  email,
+  password
+});
   sendConfirmationEmail(newStudent);
 
   res.status(201).json({ message: 'Student registered successfully.', student: newStudent });
@@ -74,17 +73,16 @@ app.post('/api/students', (req, res) => {
 
 // === Login Endpoint ===
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
+const { email, password } = req.body;
 
-  const user = users.find(
-    (u) => u.username === username && u.password === password
-  );
-
+const user = users.find(
+  (u) => u.email === email && u.password === password
+);
   if (!user) {
     return res.status(401).json({ message: 'Invalid username or password.' });
   }
 
-  res.json({ message: 'Login successful', user: { id: user.id, username: user.username } });
+  res.json({ message: 'Login successful', user: { id: user.id, email: user.email } });
 });
 
 // === Get All Students ===
