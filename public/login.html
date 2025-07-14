@@ -96,26 +96,27 @@
       const password = document.getElementById("password").value;
 
       try {
-        const res = await fetch("https://karumande-api.onrender.com/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
+  const res = await fetch("https://karumande.onrender.com/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
 
-        if (!res.ok) {
-          throw new Error("Invalid email or password");
-        }
-        const data = await res.json();
-        localStorage.setItem("user", JSON.stringify(data.user));
-        window.location.href = "dashboard.html";
-      } catch (err) {
-        errorAlert.textContent = err.message;
-        errorAlert.classList.remove("d-none");
-      } finally {
-        loginSpinner.classList.add("d-none");
-        loginText.textContent = "Login";
-      }
-    });
+  if (!res.ok) {
+    throw new Error("Invalid email or password");
+  }
+
+  const data = await res.json();
+  localStorage.setItem("user", JSON.stringify(data.user));
+  window.location.href = "dashboard.html";
+} catch (err) {
+  errorAlert.textContent = err.message;
+  errorAlert.classList.remove("d-none");
+} finally {
+  loginSpinner.classList.add("d-none");
+  loginText.textContent = "Login";
+}
+});
   </script>
 
 </body>
