@@ -122,16 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-  
+
 
   // Check login
+  document.addEventListener('DOMContentLoaded', () => {
   const user = JSON.parse(localStorage.getItem("user"));
   if (!user) {
-    window.location.href = "login.html";
-  } else {
-    document.getElementById("user-greeting").textContent = `Hello, ${user.username}!`;
+    window.location.href = "login.html"; // 🔐 Redirect if not logged in
+    return;
   }
 
-  fetchStudents(); // Dashboard cards
-  loadStudents();  // Table
+  document.getElementById("user-greeting").textContent = `Welcome, ${user.username || user.email}!`;
+  fetchStudents(); // Load student cards
 });
+
+function logout() {
+  localStorage.removeItem("user");
+  window.location.href = "login.html";
+}
+  loadStudents(); // Load students on page load
+})
