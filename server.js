@@ -9,6 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 let students = []; // In-memory student store
+let bills = []; // In-memory store for billing records
 let users = [];    // Registered users (in-memory)
 
 // === Email Sending Function ===
@@ -59,7 +60,6 @@ app.post('/api/students', (req, res) => {
   };
 
   students.push(newStudent);
-
   // Also register user for login
   users.push({
     id: users.length + 1,
@@ -90,6 +90,44 @@ app.post('/api/login', (req, res) => {
 // === Get All Students ===
 app.get('/api/students', (req, res) => {
   res.json(students);
+});
+// === Billing Endpoints ===
+
+// Create a bill
+app.post('/api/bills', (req, res) => {
+  const { name, description, amount } = req.body;
+
+  if (!name || !description || typeof amount !== 'number') {
+    return res.status(400).json({ message: 'Name, description, and numeric amount are required.' });
+  }
+
+  const newBill = {
+    id: bills.length + 1,
+    name,
+    description,
+    amount
+  };
+
+  bills.push(newBill);
+  res.status(201).json(newBill);
+});
+
+// Get all bills
+app.get('/api/bills', (req, res) => {
+  res.json(bills);
+});
+
+// Delete a bill
+app.delete('/api/bills/:id', (req, res) => {
+  const billId = parseInt(req.params.id);
+  const index = bills.findIndex(bill => bill.id === billId);
+
+  if (index === -1) {
+    return res.status(404).json({ message: 'Bill not found' });
+  }
+
+  bills.splice(index, 1);
+  res.json({ message: 'Bill deleted successfully' });
 });
 
 // === Start Server ===
