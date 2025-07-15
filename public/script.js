@@ -105,6 +105,8 @@ function logout() {
 // ==================== Highlight Nav and Init ====================
 document.addEventListener('DOMContentLoaded', () => {
   const path = window.location.pathname;
+
+  // Highlight nav
   if (path.includes('index.html')) {
     document.getElementById('home-link')?.classList.add('active');
   } else if (path.includes('register.html')) {
@@ -112,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Burger menu
-  document.addEventListener('DOMContentLoaded', () => {
   const burger = document.getElementById('burger');
   const nav = document.getElementById('nav-links');
 
@@ -131,14 +132,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = "login.html"; // 🔐 Redirect if not logged in
     return;
   }
-
-  document.getElementById("user-greeting").textContent = `Welcome, ${user.username || user.email}!`;
+  // Show user greeting
+  document.getElementById("user-greeting").textContent = `Welcome, ${user.email}`;
   fetchStudents(); // Load student cards
 });
+
+  // Event binding
+  document.getElementById('logout-btn')?.addEventListener('click', logout);
 
 function logout() {
   localStorage.removeItem("user");
   window.location.href = "login.html";
 }
-  loadStudents(); // Load students on page load
-})
+// Load students
+loadStudents();
+fetchStudents(); 
