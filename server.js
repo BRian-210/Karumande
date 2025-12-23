@@ -1,135 +1,67 @@
-require('dotenv').config(); // Load .env variables
-
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
+const morgan = require('morgan');
+const { connectDB } = require('./src/config/db');
+
+// Routers
+const authRoutes = require('./src/routes/auth');
+const studentRoutes = require('./src/routes/students');
+const billRoutes = require('./src/routes/bills');
+const paymentRoutes = require('./src/routes/payments');
+const feeStructureRoutes = require('./src/routes/feestructures');
+const resultRoutes = require('./src/routes/results');
+const announcementRoutes = require('./src/routes/announcements');
+const contentRoutes = require('./src/routes/content');
+const reportRoutes = require('./src/routes/reports');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
-
-let students = []; // In-memory student store
-let bills = []; // In-memory store for billing records
-let users = [];    // Registered users (in-memory)
-
-// === Email Sending Function ===
-function sendConfirmationEmail(student) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,   // from .env
-      pass: process.env.EMAIL_PASS    // from .env
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
     }
-  });
+  })
+);
+app.use(morgan('dev'));
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: student.email,
-    subject: 'Student Registration Confirmation',
-    text: `Hi ${student.name},\n\nThank you for registering for class ${student.class}!\n\n- School Team`
-  };
+// Serve static files from public folder (frontend)
+app.use(express.static('public'));
 
-  transporter.sendMail(mailOptions, (err, info) => {
-    if (err) {
-      console.error('❌ Email failed:', err.message);
-    } else {
-      console.log('✅ Email sent:', info.response);
-    }
-  });
+app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
+app.use('/api/auth', authRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/bills', billRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/fee-structures', feeStructureRoutes);
+app.use('/api/results', resultRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/reports', reportRoutes);
+
+// API 404 handler
+app.use('/api/', (req, res) => res.status(404).json({ message: 'Not found' }));
+
+// Serve index.html for all non-API routes (frontend routing)
+app.use((req, res, next) => {
+  // Skip API routes and static file requests
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile('index.html', { root: 'public' });
+});
+
+async function start() {
+  try {
+    await connectDB(process.env.MONGO_URI);
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => console.log(`🚀 API listening on http://localhost:${port}`));
+  } catch (err) {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  }
 }
 
-// === Register Student (with password) ===
-app.post('/api/students', (req, res) => {
-  const { name, class: studentClass, email, password } = req.body;
-
-  if (!name || !studentClass || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required.' });
-  }
-
-  const exists = students.find((s) => s.email === email);
-  if (exists) {
-    return res.status(409).json({ message: 'Student with this email already exists.' });
-  }
-
-  const newStudent = {
-    id: students.length + 1,
-    name,
-    class: studentClass,
-    email,
-    password // ❗ Passwords should be hashed in production
-  };
-
-  students.push(newStudent);
-  // Also register user for login
-  users.push({
-  id: users.length + 1,
-  email,
-  password
-});
-  sendConfirmationEmail(newStudent);
-
-  res.status(201).json({ message: 'Student registered successfully.', student: newStudent });
-});
-
-// === Login Endpoint ===
-app.post('/api/login', (req, res) => {
-const { email, password } = req.body;
-
-const user = users.find(
-  (u) => u.email === email && u.password === password
-);
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid username or password.' });
-  }
-
-  res.json({ message: 'Login successful', user: { id: user.id, email: user.email } });
-});
-
-// === Get All Students ===
-app.get('/api/students', (req, res) => {
-  res.json(students);
-});
-// === Billing Endpoints ===
-
-// Create a bill
-app.post('/api/bills', (req, res) => {
-  const { name, description, amount } = req.body;
-
-  if (!name || !description || typeof amount !== 'number') {
-    return res.status(400).json({ message: 'Name, description, and numeric amount are required.' });
-  }
-
-  const newBill = {
-    id: bills.length + 1,
-    name,
-    description,
-    amount
-  };
-
-  bills.push(newBill);
-  res.status(201).json(newBill);
-});
-
-// Get all bills
-app.get('/api/bills', (req, res) => {
-  res.json(bills);
-});
-
-// Delete a bill
-app.delete('/api/bills/:id', (req, res) => {
-  const billId = parseInt(req.params.id);
-  const index = bills.findIndex(bill => bill.id === billId);
-
-  if (index === -1) {
-    return res.status(404).json({ message: 'Bill not found' });
-  }
-
-  bills.splice(index, 1);
-  res.json({ message: 'Bill deleted successfully' });
-});
-
-// === Start Server ===
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+start();

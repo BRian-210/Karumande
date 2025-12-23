@@ -3,54 +3,271 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Karumande Link School</title>
+  <title>Karumande Link School | CBC Primary & Junior School</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
-
-  <!-- Header -->
-  <header>
+  <header class="site-header">
     <div class="nav-container">
-      <h1>Karumande Link School</h1>
-      <button class="burger" id="burger" aria-label="Toggle navigation menu">&#9776;</button>
-      <button class="burger" id="burger">&#9776;</button>
-  <nav id="nav-links">
-  <a href="index.html" class="nav-link" id="home-link">Home</a>
-  <a href="about.html" class="nav-link">About</a>
-  <a href="login.html" class="nav-link">Login</a>
-  <a href="Billing.html" class="nav-link">Billing</a>
-  </nav>
-  </div>
+      <div class="brand">
+        <img src="IMG-20250625-WA0010.jpg" alt="Karumande Link School logo" class="brand-mark" />
+        <div>
+          <p class="brand-name">Karumande Link School</p>
+          <p class="brand-motto">Discipline, Hardwork Begets Success</p>
+        </div>
+      </div>
+      <button class="burger" id="burger" aria-label="Toggle navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="nav-links" class="nav-links">
+        <a href="#home" class="nav-link">Home</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#academics" class="nav-link">Academics</a>
+        <a href="#admissions" class="nav-link">Admissions</a>
+        <a href="#news" class="nav-link">News & Events</a>
+        <a href="#gallery" class="nav-link">Gallery</a>
+        <a href="#contact" class="nav-link">Contact</a>
+        <a href="login.html" class="nav-link nav-pill">Parent/Student Login</a>
+      </nav>
+    </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="gallery">
-    <img src="IMG-20250625-WA0002.jpg" alt="School Front" loading="lazy" />
-    <img src="IMG-20250625-WA0005.jpg" alt="School Side" loading="lazy" />
-    <img src="IMG-20250625-WA0016.jpg" alt="Dishes served at school" loading="lazy" />
-    <img src="IMG-20250625-WA0003.jpg" alt="Cultural Day performance" loading="lazy" />
-    <img src="IMG-20250625-WA0005.jpg" alt="Science Practicals" loading="lazy" />
-    <img src="WhatsApp Image 2025-04-03 at 10.03.03_2d19b6c6.jpg" alt="Students performing practicals" loading="lazy" />
-    <img src="k.jpg" alt="School Trip" loading="lazy" />
-    <img src="IMG-20250625-WA0010.jpg" alt="School Bus" loading="lazy" />
-    <img src="IMG-20250625-WA0012.jpg" alt="Trip to museum" loading="lazy" />
-    <img src="IMG-20250625-WA0020.jpg" alt="School Front view" loading="lazy" />
-    <img src="IMG-20250625-WA0019.jpg" alt="School Side garden" loading="lazy" />
-    <img src="IMG-20250625-WA0015.jpg" alt="Learners’ Creative Projects" loading="lazy" />
+  <main>
+    <!-- Hero -->
+    <section class="hero" id="home">
+      <div class="hero-content">
+        <p class="eyebrow">CBC Primary & Junior School</p>
+        <h1>Safe, vibrant learning for every child</h1>
+        <p class="lede">
+         Qualified teachers, and a caring environment that nurtures curiosity,
+          creativity, and character.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="#admissions">Apply Now</a>
+          <a class="btn link" href="login.html">Parent Portal</a>
+        </div>
+      </div>
+      <div class="hero-media">
+        <img src="IMG-20250625-WA0002.jpg" alt="Happy pupils at Karumande Link School" loading="lazy" />
+      </div>
+    </section>
+
+    <!-- Welcome -->
+    <section class="panel two-column" id="about">
+      <div class="panel-media">
+        <img src="IMG-20250625-WA0005.jpg" alt="Karumande Link School compound" loading="lazy" />
+      </div>
+      <div class="panel-content">
+        <p class="eyebrow">From the Director</p>
+        <h2>Welcome to Karumande Link School</h2>
+        <p>
+          At Karumande Link School we believe every learner deserves an environment that is
+          safe, inspiring, and tailored to their needs. Our CBC approach builds strong
+          foundations while nurturing creativity, collaboration, and confidence.
+        </p>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <i class="fa-solid fa-book-open"></i>
+            <h3>CBC curriculum</h3>
+            <p>Competency-based learning for Playgroup – Grade 9.</p>
+          </article>
+          <article class="feature-card">
+            <i class="fa-solid fa-people-group"></i>
+            <h3>Small classes</h3>
+            <p>Personalized attention and strong teacher-learner rapport.</p>
+          </article>
+          <article class="feature-card">
+            <i class="fa-solid fa-user-graduate"></i>
+            <h3>Qualified teachers</h3>
+            <p>Dedicated staff with proven CBC delivery experience.</p>
+          </article>
+          <article class="feature-card">
+            <i class="fa-solid fa-shield-heart"></i>
+            <h3>Safe environment</h3>
+            <p>Secure compound, caring adults, and clear safeguarding policies.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Academics -->
+    <section class="section" id="academics">
+      <div class="section-header">
+        <p class="eyebrow">Academics</p>
+        <h2>CBC learning that grows with your child</h2>
+        <p class="lede">
+          From foundational literacy to STEM and the arts, we balance academics with
+          co-curricular clubs, sports, and values education.
+        </p>
+      </div>
+      <div class="cards three">
+        <article class="card">
+          <h3>Playgroup</h3>
+          <p>Play-based discovery, number work, pre-literacy, social skills.</p>
+        </article>
+        <article class="card">
+          <h3>PP1 – PP2</h3>
+          <p>Play-based discovery, number work, pre-literacy, social skills.</p>
+        </article>
+        <article class="card">
+          <h3>Grade 1 – 3</h3>
+          <p>Literacy, Kiswahili, Mathematics, Environmental & Creative activities.</p>
+        </article>
+        <article class="card">
+          <h3>Grade 4 – 9</h3>
+          <p>STEM, Languages, Social Studies, Agriculture, Sports & Clubs.</p>
+        </article>
+      </div>
+      <div class="cards two">
+        <article class="card">
+          <h3>Co-curricular</h3>
+          <p>Sports day, music & drama, clubs, educational trips, community service.</p>
+        </article>
+        <article class="card">
+          <h3>Academic calendar</h3>
+          <p>Aligned to MoE term dates; continuous assessment and end-term exams.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Admissions -->
+    <section class="section tint" id="admissions">
+      <div class="section-header">
+        <p class="eyebrow">Admissions</p>
+        <h2>Join our community</h2>
+        <p class="lede">We welcome new learners year-round subject to class availability.</p>
+      </div>
+      <div class="two-column stack">
+        <div>
+          <h3>Entry requirements</h3>
+          <ul class="checklist">
+            <li>Birth certificate & recent passport photo</li>
+            <li>Previous transfer letter (for transfers)</li>
+            <li>Completed admission form</li>
+            <li>Interview/assessment where applicable (for new students)</li>
+          </ul>
+          <div class="inline-actions">
+            <a class="btn primary" href="application.html">Start Application</a>
+          </div>
+        </div>
+        <div>
+          <h3>Fee structure</h3>
+          <p>Termly fee statements are shared with parents. Pay via M-Pesa, bank deposit, or office cash receipting.</p>
+          <div class="key-points">
+            <div>
+              <p class="eyebrow">Modes</p>
+              <p>M-Pesa STK push, bank deposit, or office cash receipting.</p>
+            </div>
+            <div>
+              <p class="eyebrow">Support</p>
+              <p>Need a detailed PDF? <a href="mailto:karumandelinkschool@gmail.com">Email the office</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- News & Events -->
+    <section class="section" id="news">
+      <div class="section-header">
+        <p class="eyebrow">News & Events</p>
+        <h2>Stay updated</h2>
+      </div>
+      <div class="cards three">
+        <article class="card news-card">
+          <p class="news-date">Jan 2026</p>
+          <h3>Term 1 opening</h3>
+          <p>Learners report back in week 1. Timetables and clubs sign-up shared via the portal.</p>
+        </article>
+        <article class="card news-card">
+          <p class="news-date">Feb 2026</p>
+          <h3>Parents meeting</h3>
+          <p>Class briefings and progress updates. Invitations go to parent emails and WhatsApp.</p>
+        </article>
+        <article class="card news-card">
+          <p class="news-date">Mar 2026</p>
+          <h3>Sports & culture day</h3>
+          <p>Track events, football, music, and drama to celebrate holistic growth.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Gallery -->
+    <section class="section tint" id="gallery">
+      <div class="section-header">
+        <p class="eyebrow">Gallery</p>
+        <h2>Life at Karumande Link School</h2>
+      </div>
+      <div class="gallery-grid">
+        <img src="IMG-20250625-WA0003.jpg" alt="Cultural day performance" loading="lazy" />
+        <img src="IMG-20250625-WA0016.jpg" alt="Meals served at school" loading="lazy" />
+        <img src="WhatsApp Image 2025-04-03 at 10.03.03_2d19b6c6.jpg" alt="Science practicals" loading="lazy" />
+        <img src="IMG-20250625-WA0019.jpg" alt="School compound gardens" loading="lazy" />
+        <img src="IMG-20250625-WA0020.jpg" alt="Front view of the school" loading="lazy" />
+        <img src="k.jpg" alt="Educational trip" loading="lazy" />
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="section" id="contact">
+      <div class="section-header">
+        <p class="eyebrow">Contact Us</p>
+        <h2>We are here to help</h2>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <i class="fa-solid fa-phone"></i>
+          <h3>Call & WhatsApp</h3>
+          <p><a href="tel:+254742052920">+254 742 052 920</a></p>
+        </div>
+        <div class="contact-card">
+          <i class="fa-solid fa-envelope"></i>
+          <h3>Email</h3>
+          <p><a href="mailto:karumandelinkschool@gmail.com">githinjibriank973@gmail.com</a></p>
+        </div>
+        <div class="contact-card">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <h3>Visit</h3>
+          <p>Along Karumandi–Kianyaga road, Kirinyaga</p>
+        </div>
+      </div>
+      <div class="contact-layout">
+        <iframe class="map" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1997.003!2d37.276!3d-0.582!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2ske!4v1734890000" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <form class="contact-form">
+          <label for="parent-name">Your name</label>
+          <input id="parent-name" type="text" placeholder="Parent/Guardian name" required />
+          <label for="parent-email">Email</label>
+          <input id="parent-email" type="email" placeholder="you@example.com" required />
+          <label for="parent-message">How can we help?</label>
+          <textarea id="parent-message" rows="4" placeholder="Admission enquiry, transfer, fees..."></textarea>
+          <button type="submit" class="btn primary">Send message</button>
+        </form>
+      </div>
+    </section>
   </main>
 
-  <!-- Footer -->
-  <footer>
-    <p>Contact us: <a href="mailto:karumandelinkschool@gmail.com">karumandelinkschool@gmail.com</a></p>
-    <p>Follow us:
-  <a href="https://www.facebook.com/share/1CCy87cScm/"><i class="fab fa-facebook-f"></i></a>
-  <a href="#"><i class="fab fa-twitter"></i></a>
-</p>
-    <p>&copy; 2025 Karumande Link School. All rights reserved.</p>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div>
+        <p class="brand-name">Karumande Link School</p>
+        <p>Safe, nurturing CBC education from Playgroup to Grade 9.</p>
+      </div>
+      <br>
+      <div class="footer-links">
+        <a href="#about">About</a>
+        <a href="#admissions">Admissions</a>
+        <a href="#news">News</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="social">
+        <a href="https://www.facebook.com/share/1CCy87cScm/" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+      </div>
+    </div>
+    <p class="copyright">&copy; 2025 Karumande Link School. All rights reserved.</p>
   </footer>
 
-  <!-- Script -->
   <script src="script.js"></script>
 </body>
 </html>

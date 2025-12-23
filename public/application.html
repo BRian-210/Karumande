@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Admission Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; }
+    .container {
+      max-width: 700px;
+      background: #fff;
+      padding: 20px;
+      margin: 40px auto;
+      border-radius: 8px;
+    }
+    h2 { text-align: center; }
+    label { font-weight: bold; margin-top: 12px; display:block; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #1e88e5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Student Admission Application</h2>
+
+  <form action="/api/admissions" method="POST">
+
+    <h3>Parent / Guardian Information</h3>
+
+    <label>Full Name</label>
+    <input type="text" name="parentName" required />
+
+    <label>Phone Number</label>
+    <input type="tel" name="phone" required />
+
+    <label>Email Address</label>
+    <input type="email" name="email" required />
+
+    <label>Relationship to Child</label>
+    <select name="relationship" required>
+      <option value="">Select</option>
+      <option>Father</option>
+      <option>Mother</option>
+      <option>Guardian</option>
+    </select>
+
+    <h3>Student Information</h3>
+
+    <label>Student Full Name</label>
+    <input type="text" name="studentName" required />
+
+    <label>Gender</label>
+    <select name="gender" required>
+      <option value="">Select</option>
+      <option>Male</option>
+      <option>Female</option>
+    </select>
+
+    <label>Date of Birth</label>
+    <input type="date" name="dob" required />
+
+    <label>Class Applying For</label>
+    <select name="classApplied" required>
+      <option value="">Select Class</option>
+      <option>Playgroup</option>
+      <option>PP1</option>
+      <option>PP2</option>
+      <option>Grade 1</option>
+      <option>Grade 2</option>
+      <option>Grade 3</option>
+      <option>Grade 4</option>
+      <option>Grade 5</option>
+      <option>Grade 6</option>
+      <option>Grade 7</option>
+      <option>Grade 8</option>
+      <option>Grade 9</option>
+    </select>
+
+    <label>Previous School (if any)</label>
+    <input type="text" name="previousSchool" />
+
+    <label>Special Needs / Medical Information</label>
+    <textarea name="medicalInfo"></textarea>
+
+    <label>
+      <input type="checkbox" required />
+      I confirm the above information is correct
+    </label>
+
+    <button type="submit">Submit Application</button>
+
+  </form>
+</div>
+
+</body>
+</html>
