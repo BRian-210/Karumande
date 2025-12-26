@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f6f8;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: #1e88e5;
+      color: white;
+      padding: 15px 20px;
+      font-size: 18px;
+    }
+
+    /* Layout */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: #263238;
+      color: #fff;
+      padding-top: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: #fff;
+      padding: 12px 20px;
+      text-decoration: none;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background: #1e88e5;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      padding: 20px;
+    }
+
+    /* Cards */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .card p {
+      font-size: 28px;
+      margin: 10px 0 0;
+      color: #1e88e5;
+    }
+
+    /* Section */
+    .section {
+      margin-top: 30px;
+    }
+
+    table {
+      width: 100%;
+      background: white;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background: #f0f0f0;
+      text-align: left;
+    }
+
+    .logout {
+      margin-top: 20px;
+      color: #ff5252;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  Karumande School — Admin Dashboard
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="admissions.html">Admissions</a>
+    <a href="students.html">Students</a>
+    <a href="fees.html">Fees</a>
+    <a href="payments.html">Payments</a>
+    <a href="results.html">Results</a>
+    <a href="reports.html">Reports</a>
+    <a href="#" class="logout" onclick="logout()">Logout</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="cards">
+      <div class="card">
+        <h3>Pending Admissions</h3>
+        <p id="pendingAdmissions">0</p>
+      </div>
+      <div class="card">
+        <h3>Total Students</h3>
+        <p id="totalStudents">0</p>
+      </div>
+      <div class="card">
+        <h3>Fees Collected</h3>
+        <p id="feesCollected">KES 0</p>
+      </div>
+      <div class="card">
+        <h3>Outstanding Balance</h3>
+        <p id="outstanding">KES 0</p>
+      </div>
+    </div>
+
+    <!-- Recent Admissions -->
+    <div class="section">
+      <h3>Recent Admissions</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="recentAdmissions">
+          <tr>
+            <td colspan="4">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    window.location.href = '/admin/login.html';
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    window.location.href = '/admin/login.html';
+  }
+
+  // Example data loading (replace with real API calls)
+  document.getElementById('pendingAdmissions').textContent = 5;
+  document.getElementById('totalStudents').textContent = 312;
+  document.getElementById('feesCollected').textContent = 'KES 1,200,000';
+  document.getElementById('outstanding').textContent = 'KES 320,000';
+</script>
+
+</body>
+</html>
