@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enter Results | Teachers Dashboard — Karumande Link School</title>
+
+  <!-- Inter Font & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <div class="container">
+    <h1><i class="fa-solid fa-clipboard-list"></i> Teachers Dashboard — Enter Results</h1>
+
+    <!-- Selection Form -->
+    <section class="card">
+      <div class="form-row">
+        <div>
+          <label for="classSelect">Class</label>
+          <select id="classSelect">
+            <option value="">Select Class</option>
+            <option>Playgroup</option>
+            <option>PP1</option>
+            <option>PP2</option>
+            <option>Grade 1</option>
+            <option>Grade 2</option>
+            <option>Grade 3</option>
+            <option>Grade 4</option>
+            <option>Grade 5</option>
+            <option>Grade 6</option>
+            <option>Grade 7</option>
+            <option>Grade 8</option>
+            <option>Grade 9</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="termSelect">Term</label>
+          <select id="termSelect">
+            <option>Term 1</option>
+            <option>Term 2</option>
+            <option>Term 3</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="subjectInput">Subject</label>
+          <input type="text" id="subjectInput" placeholder="e.g. Mathematics" required />
+        </div>
+
+        <div>
+          <label for="maxScore">Max Score</label>
+          <input type="number" id="maxScore" value="100" min="1" required />
+        </div>
+
+        <div>
+          <label>&nbsp;</label>
+          <button id="loadBtn" class="btn">Load Students</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Students Table -->
+    <section id="studentsSection" class="card" style="display:none;">
+      <h2 id="classTitle" style="margin-bottom: 20px; color: var(--brand-strong);"></h2>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student Name</th>
+            <th>Admission No</th>
+            <th>Score (out of <span id="maxScoreDisplay"></span>)</th>
+          </tr>
+        </thead>
+        <tbody id="studentsBody">
+          <!-- Filled dynamically -->
+        </tbody>
+      </table>
+
+      <div style="margin-top: 24px; text-align: right;">
+        <button id="submitClassBtn" class="btn primary">Submit All Results</button>
+      </div>
+    </section>
+
+    <div id="message"></div>
+  </div>
+
+  <script src="/teachers/dashboard.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recent Admissions | Karumande Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" a href="/style.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>Recent Admissions (with created Students)</h1>
+      <div class="muted">Shows admissions that have already been accepted and produced a Student record</div>
+    </div>
+
+    <div class="table-box">
+      <div id="loading" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
+
+      <table id="recentTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Admission No</th>
+            <th>Student</th>
+            <th>Parent (email)</th>
+            <th>Phone</th>
+            <th>Class</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th>Links</th>
+          </tr>
+        </thead>
+        <tbody id="recentBody"></tbody>
+      </table>
+
+      <div id="emptyMsg" class="empty" style="display:none;"><i class="fa-solid fa-inbox fa-2x"></i><div class="small">No recent admissions with created students.</div></div>
+    </div>
+  </div>
+
+  <script src="/admin/icons-replace.js" defer></script>
+  <script src="/admin/recent-admissions.js" defer></script>
+</body>
+</html>

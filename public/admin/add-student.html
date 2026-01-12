@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Add Student — Admin</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="admin-page">
+    <main class="container">
+      <h1>Add Student</h1>
+      <section class="card">
+        <div class="form-row">
+          <label>Name</label>
+          <input id="name" />
+
+          <label>Class</label>
+          <select id="classLevel">
+            <option>PlayGroup</option>
+            <option>PP1</option>
+            <option>PP2</option>
+            <option>Grade 1</option>
+            <option>Grade 2</option>
+            <option>Grade 3</option>
+            <option>Grade 4</option>
+            <option>Grade 5</option>
+            <option>Grade 6</option>
+            <option>Grade 7</option>
+            <option>Grade 8</option>
+            <option>Grade 9</option>
+          </select>
+
+          <label>Admission No</label>
+          <input id="admissionNumber" />
+
+          <label>DOB</label>
+          <input id="dob" type="date" />
+
+          <label>Gender</label>
+          <select id="gender">
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+
+          <label>Parent ID (optional)</label>
+          <input id="parentId" placeholder="Parent user id" />
+
+          <button id="saveBtn" class="btn primary">Save Student</button>
+        </div>
+      </section>
+
+      <div id="msg" style="margin-top:12px"></div>
+    </main>
+
+    <script src="/admin/add-student.js"></script>
+  </body>
+</html>

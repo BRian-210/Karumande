@@ -1,4 +1,5 @@
 const CLASS_LEVELS = [
+  'PlayGroup',
   'PP1',
   'PP2',
   'Grade 1',

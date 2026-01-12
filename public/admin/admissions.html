@@ -2,131 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admission Applications</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 20px;
-    }
-    h2 {
-      text-align: center;
-    }
-    table {
-      width: 100%;
-      background: #fff;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-    th {
-      background: #1e88e5;
-      color: #fff;
-    }
-    button {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .approve {
-      background: #4caf50;
-      color: white;
-    }
-    .reject {
-      background: #e53935;
-      color: white;
-    }
-  </style>
+  <title>Admission Applications | Karumande Link School Admin</title>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" a href="/style.css" />
 </head>
 <body>
 
-<h2>Pending Admission Applications</h2>
+  <div class="container">
+    <div class="header">
+      <h1>Admission Applications</h1>
+      <div class="filters">
+        <select id="statusFilter">
+          <option value="all">All Applications</option>
+          <option value="pending" selected>Pending Review</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <a href="/admin/recent-admissions.html" class="btn btn-view" style="display:inline-flex;align-items:center;margin-left:8px;">
+          <i class="fa-solid fa-clock-rotate-left" style="margin-right:8px;font-size:0.95rem"></i>
+          Recent Admissions
+        </a>
+      </div>
+    </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Parent</th>
-      <th>Phone</th>
-      <th>Student</th>
-      <th>Class</th>
-      <th>Date</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody id="applications"></tbody>
-</table>
+    <div class="table-container">
+      <div id="loading" class="loading">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <div>Loading applications...</div>
+      </div>
 
-<script>
-  const token = localStorage.getItem('token'); // admin JWT
+      <table id="applicationsTable" style="display: none;">
+        <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Parent</th>
+            <th>Phone</th>
+            <th>Class Applied</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="applicationsBody"></tbody>
+      </table>
 
-  if (!token) {
-    window.location.href = '/login.html';
-  }
+      <div id="empty" class="empty" style="display: none;">
+        <i class="fa-solid fa-inbox fa-3x"></i>
+        <p>No applications found.</p>
+      </div>
+    </div>
+  </div>
 
-  async function loadApplications() {
-    const res = await fetch('/api/admissions?status=pending', {
-      headers: {
-        Authorization: 'Bearer ' + token
-      }
-    });
-
-    const data = await res.json();
-    const tbody = document.getElementById('applications');
-    tbody.innerHTML = '';
-
-    data.forEach(app => {
-      const row = document.createElement('tr');
-
-      row.innerHTML = `
-        <td>${app.parentName}</td>
-        <td>${app.phone}</td>
-        <td>${app.studentName}</td>
-        <td>${app.classApplied}</td>
-        <td>${new Date(app.createdAt).toLocaleDateString()}</td>
-        <td>
-          <button class="approve" onclick="approve('${app._id}')">Approve</button>
-          <button class="reject" onclick="reject('${app._id}')">Reject</button>
-        </td>
-      `;
-
-      tbody.appendChild(row);
-    });
-  }
-
-  async function approve(id) {
-    if (!confirm('Approve this application?')) return;
-
-    await fetch(`/api/admissions/${id}/approve`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: 'Bearer ' + token
-      }
-    });
-
-    loadApplications();
-  }
-
-  async function reject(id) {
-    if (!confirm('Reject this application?')) return;
-
-    await fetch(`/api/admissions/${id}/reject`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: 'Bearer ' + token
-      }
-    });
-
-    loadApplications();
-  }
-
-  loadApplications();
-</script>
+    <script src="/admin/icons-replace.js" defer></script>
+    <script src="/admin/admissions.js" defer></script>
 
 </body>
 </html>

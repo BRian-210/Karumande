@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Login • Karumande Link School</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="icon" href="https://picsum.photos/32/32" type="image/png">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="login-card">
+    <div class="header">
+      <img src="https://picsum.photos/32/32" alt="Karumande Link School">
+      <h1>Karumande Link School</h1>
+      <p>Teacher Portal Login</p>
+    </div>
+
+    <div class="form-section">
+      <form id="loginForm">
+        <div class="input-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" required autocomplete="username" placeholder="teacher@karumande.ac.ke" />
+        </div>
+
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••" />
+        </div>
+
+        <button type="submit" id="loginBtn">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Sign In</span>
+        </button>
+
+        <div id="err" class="error" style="display:none"></div>
+
+        <div class="links">
+          <a href="/teachers/forgot-password.html">Forgot your password?</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="footer">
+      © 2026 Karumande Link School • CBC Competency Tracking System
+    </div>
+  </div>
+
+  <script src="/teachers/login.js"></script>
+</body>
+</html>

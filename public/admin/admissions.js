@@ -1,0 +1,121 @@
+// public/admin/admissions.js
+// JS extracted from admissions.html to comply with CSP (no inline scripts)
+
+const token = localStorage.getItem('token');
+if (!token) {
+  window.location.href = '/admin/login.html';
+}
+
+const API_BASE = '';
+const tbody = document.getElementById('applicationsBody');
+const table = document.getElementById('applicationsTable');
+const loading = document.getElementById('loading');
+const empty = document.getElementById('empty');
+const statusFilter = document.getElementById('statusFilter');
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  });
+}
+
+async function loadApplications(status = 'pending') {
+  try {
+    loading.style.display = 'block';
+    table.style.display = 'none';
+    empty.style.display = 'none';
+
+    const url = status === 'all'
+      ? `${API_BASE}/api/admissions`
+      : `${API_BASE}/api/admissions?status=${status}`;
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) throw new Error('Failed to load applications');
+
+    const data = await res.json();
+
+    // API may return either an array or a paginated object { applications, pagination }
+    const apps = Array.isArray(data) ? data : (data.applications || []);
+
+    tbody.innerHTML = '';
+
+    if (!apps || apps.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    apps.forEach(app => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${app.studentName}</strong></td>
+        <td>${app.parentName}<br><small>${app.email || '-'}</small></td>
+        <td>${app.phone}</td>
+        <td>${app.classApplied}</td>
+        <td>${formatDate(app.submittedAt)}</td>
+        <td><span class="status ${app.status}">${app.status}</span></td>
+        <td class="actions">
+          <button class="btn btn-view" onclick="viewApplication('${app._id}')">
+            <i class="fa-solid fa-eye"></i> View
+          </button>
+          ${app.status === 'pending' ? `
+            <button class="btn btn-approve" onclick="updateStatus('${app._id}', 'accepted')">
+              <i class="fa-solid fa-check"></i> Approve
+            </button>
+            <button class="btn btn-reject" onclick="updateStatus('${app._id}', 'rejected')">
+              <i class="fa-solid fa-times"></i> Reject
+            </button>
+          ` : '<em>Processed</em>'}
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    table.style.display = 'table';
+  } catch (err) {
+    alert('Error loading applications: ' + err.message);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+async function updateStatus(id, newStatus) {
+  const action = newStatus === 'accepted' ? 'approve' : 'reject';
+  if (!confirm(`Are you sure you want to ${action} this application?`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/admissions/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Update failed');
+    }
+
+    alert(`Application ${action}d successfully!`);
+    loadApplications(statusFilter.value);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+function viewApplication(id) {
+  window.location.href = `/admin/admission-view.html?id=${id}`;
+}
+
+// Filter change
+statusFilter.addEventListener('change', (e) => {
+  const status = e.target.value === 'all' ? 'all' : e.target.value;
+  loadApplications(status);
+});
+
+// Initial load
+loadApplications('pending');

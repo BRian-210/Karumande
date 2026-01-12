@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CBC Learner Progress Report Cards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      margin: 0;
+    }
+    .actions {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+    button:hover { background: #1d4ed8; }
+
+    .report {
+      background: #ffffff;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      page-break-after: always;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    .school-info h1 {
+      font-size: 24px;
+      margin: 0;
+      color: #1e293b;
+    }
+    .school-info p {
+      margin: 4px 0;
+      color: #475569;
+      font-size: 14px;
+    }
+    .logo-placeholder {
+      width: 100px;
+      height: 100px;
+      background: #e2e8f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 12px;
+      text-align: center;
+    }
+    .learner-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .learner-info div {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 10px;
+    }
+    h2 {
+      font-size: 16px;
+      color: #1e293b;
+      margin: 24px 0 12px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13.5px;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #334155;
+    }
+    .subject-row {
+      background: #eff6ff !important;
+      font-weight: 600;
+      color: #1e40af;
+    }
+    .EE { color: #166534; font-weight: 700; }
+    .ME { color: #075985; font-weight: 700; }
+    .AE { color: #854d0e; font-weight: 700; }
+    .BE { color: #7f1d1d; font-weight: 700; }
+
+    .comment {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 80px;
+      background: #f8fafc;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .signatures {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .signature {
+      text-align: center;
+    }
+    .line {
+      border-top: 1px solid #1e293b;
+      margin-top: 50px;
+      padding-top: 8px;
+    }
+
+    @media print {
+      body { background: none; padding: 0; }
+      .actions { display: none; }
+      .report {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 30px;
+      }
+      @page { margin: 0.8cm; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="actions">
+  <button onclick="exportPDF()">Export All Report Cards as PDF</button>
+</div>
+
+<div id="reports"></div>
+
+<script>
+  const currentDate = "January 03, 2026";
+
+  const classInfo = {
+    school: "Karumande Link School",
+    grade: "Grade 3",
+    term: "Term 1",
+    year: "2026",
+    date: currentDate
+  };
+
+  const learners = [
+    {
+      name: "John Mwangi",
+      adm: "1023",
+      results: {
+        "English Activities": [
+          {comp: "Listening and Speaking", level: "EE"},
+          {comp: "Reading Fluency", level: "ME"},
+          {comp: "Comprehension", level: "ME"},
+          {comp: "Grammar and Language Use", level: "AE"},
+          {comp: "Writing", level: "ME"}
+        ],
+        "Kiswahili": [
+          {comp: "Kusikiliza na Kuzungumza", level: "ME"},
+          {comp: "Kusoma", level: "ME"},
+          {comp: "Sarufi na Matumizi ya Lugha", level: "AE"}
+        ],
+        "Mathematical Activities": [
+          {comp: "Number Concepts", level: "ME"},
+          {comp: "Measurement", level: "EE"},
+          {comp: "Problem Solving", level: "ME"}
+        ],
+        "Environmental Activities": [
+          {comp: "Care for Environment", level: "EE"},
+          {comp: "Social Responsibility", level: "EE"}
+        ],
+        "Hygiene and Nutrition": [
+          {comp: "Personal Hygiene", level: "EE"},
+          {comp: "Healthy Eating", level: "ME"}
+        ],
+        "Movement and Creative Activities": [
+          {comp: "Creative Arts", level: "EE"},
+          {comp: "Physical Education", level: "ME"}
+        ],
+        "Christian Religious Education": [
+          {comp: "Bible Stories", level: "EE"},
+          {comp: "Moral Values", level: "EE"}
+        ]
+      },
+      teacherComment: "John is a confident and active learner. He shows excellent participation in group activities and has made strong progress in listening and speaking. Continue encouraging daily reading at home.",
+      headComment: "A promising and well-behaved learner with great potential. Keep up the good work!"
+    },
+    {
+      name: "Mary Wanjiku",
+      adm: "1024",
+      results: {
+        "English Activities": [
+          {comp: "Listening and Speaking", level: "ME"},
+          {comp: "Reading Fluency", level: "AE"},
+          {comp: "Comprehension", level: "AE"},
+          {comp: "Grammar and Language Use", level: "ME"},
+          {comp: "Writing", level: "AE"}
+        ],
+        "Kiswahili": [
+          {comp: "Kusikiliza na Kuzungumza", level: "ME"},
+          {comp: "Kusoma", level: "ME"},
+          {comp: "Sarufi na Matumizi ya Lugha", level: "ME"}
+        ],
+        "Mathematical Activities": [
+          {comp: "Number Concepts", level: "ME"},
+          {comp: "Measurement", level: "ME"},
+          {comp: "Problem Solving", level: "AE"}
+        ],
+        "Environmental Activities": [
+          {comp: "Care for Environment", level: "ME"},
+          {comp: "Social Responsibility", level: "ME"}
+        ],
+        "Hygiene and Nutrition": [
+          {comp: "Personal Hygiene", level: "EE"},
+          {comp: "Healthy Eating", level: "ME"}
+        ],
+        "Movement and Creative Activities": [
+          {comp: "Creative Arts", level: "ME"},
+          {comp: "Physical Education", level: "ME"}
+        ],
+        "Christian Religious Education": [
+          {comp: "Bible Stories", level: "ME"},
+          {comp: "Moral Values", level: "EE"}
+        ]
+      },
+      teacherComment: "Mary is improving steadily. She needs more practice in reading fluency and writing composition. Regular home support will help her meet expectations soon.",
+      headComment: "A polite and diligent learner. With consistent effort, she will achieve more."
+    },
+    {
+      name: "Peter Otieno",
+      adm: "1025",
+      results: {
+        "English Activities": [
+          {comp: "Listening and Speaking", level: "EE"},
+          {comp: "Reading Fluency", level: "EE"},
+          {comp: "Comprehension", level: "ME"},
+          {comp: "Grammar and Language Use", level: "ME"},
+          {comp: "Writing", level: "EE"}
+        ],
+        "Mathematical Activities": [
+          {comp: "Number Concepts", level: "EE"},
+          {comp: "Measurement", level: "EE"},
+          {comp: "Problem Solving", level: "EE"}
+        ]
+      },
+      teacherComment: "Outstanding performance across subjects. Peter demonstrates excellent understanding and enthusiasm for learning.",
+      headComment: "An exceptional learner. Continue challenging him with advanced tasks."
+    }
+  ];
+
+  const container = document.getElementById("reports");
+
+  learners.forEach(learner => {
+    let rows = "";
+    Object.keys(learner.results).forEach((subject, idx) => {
+      const competencies = learner.results[subject];
+      competencies.forEach((r, i) => {
+        rows += `
+          <tr>
+            ${i === 0 ? `<td rowspan="${competencies.length}" class="subject-row">${subject}</td>` : ""}
+            <td>${r.comp}</td>
+            <td class="${r.level}">${r.level === "EE" ? "Exceeding Expectations" : 
+                                 r.level === "ME" ? "Meeting Expectations" : 
+                                 r.level === "AE" ? "Approaching Expectations" : "Below Expectations"}</td>
+          </tr>`;
+      });
+    });
+
+    container.innerHTML += `
+      <div class="report">
+        <div class="header">
+          <div class="school-info">
+            <h1>${classInfo.school}</h1>
+            <p>CBC Learner Progress Report Card</p>
+            <p><strong>${classInfo.term}, ${classInfo.year}</strong> | Date: ${classInfo.date}</p>
+          </div>
+          <div class="logo-placeholder">
+            School<br>Logo
+          </div>
+        </div>
+
+        <div class="learner-info">
+          <div><strong>Learner Name:</strong> ${learner.name}</div>
+          <div><strong>Admission No:</strong> ${learner.adm}</div>
+          <div><strong>Class:</strong> ${classInfo.grade}</div>
+          <div><strong>Term:</strong> ${classInfo.term} ${classInfo.year}</div>
+        </div>
+
+        <h2>Performance in Learning Areas</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Learning Area</th>
+              <th>Strand / Competency</th>
+              <th>Performance Level</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+
+        <h2>Class Teacher's Comment</h2>
+        <div class="comment">${learner.teacherComment}</div>
+
+        <h2>Head Teacher's Comment</h2>
+        <div class="comment">${learner.headComment}</div>
+
+        <div class="signatures">
+          <div class="signature">
+            <div class="line">Class Teacher</div>
+          </div>
+          <div class="signature">
+            <div class="line">Parent / Guardian</div>
+          </div>
+          <div class="signature">
+            <div class="line">Head Teacher</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  function exportPDF() {
+    const element = document.getElementById('reports');
+    const opt = {
+      margin: 0.5,
+      filename: `CBC_${classInfo.grade.replace(' ', '')}_ReportCards_${classInfo.term}_${classInfo.year}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  }
+</script>
+
+</body>
+</html>

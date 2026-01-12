@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Login | Karumande</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" a href="/style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>Admin Login</h1>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="username" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required autocomplete="current-password" />
+
+      <button type="submit">Sign In</button>
+      <div id="msg" class="muted">Use an admin account (created via register or seed).</div>
+      <div id="err" class="error" style="display:none"></div>
+    </form>
+  </div>
+
+  <script src="/admin/login.js"></script>
+</body>
+</html>

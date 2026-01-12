@@ -2,196 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
+  <title>Admin Dashboard | Karumande Link School</title>
 
-    body {
-      margin: 0;
-      background: #f4f6f8;
-    }
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    /* Top bar */
-    .topbar {
-      background: #1e88e5;
-      color: white;
-      padding: 15px 20px;
-      font-size: 18px;
-    }
-
-    /* Layout */
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 220px;
-      background: #263238;
-      color: #fff;
-      padding-top: 20px;
-    }
-
-    .sidebar a {
-      display: block;
-      color: #fff;
-      padding: 12px 20px;
-      text-decoration: none;
-    }
-
-    .sidebar a:hover,
-    .sidebar a.active {
-      background: #1e88e5;
-    }
-
-    /* Content */
-    .content {
-      flex: 1;
-      padding: 20px;
-    }
-
-    /* Cards */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .card h3 {
-      margin: 0;
-      font-size: 14px;
-      color: #555;
-    }
-
-    .card p {
-      font-size: 28px;
-      margin: 10px 0 0;
-      color: #1e88e5;
-    }
-
-    /* Section */
-    .section {
-      margin-top: 30px;
-    }
-
-    table {
-      width: 100%;
-      background: white;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-    }
-
-    th {
-      background: #f0f0f0;
-      text-align: left;
-    }
-
-    .logout {
-      margin-top: 20px;
-      color: #ff5252;
-    }
-  </style>
+  <!-- Local CSS -->
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+  <header class="topbar">
+    <button class="burger" id="burger" aria-label="Toggle navigation menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    <h1><i class="fa-solid fa-chart-line"></i> Admin Dashboard</h1>
+    <div class="topbar-actions">
+      <div class="notification" title="3 new messages">
+        <i class="fa-solid fa-bell"></i>
+        <span class="notification-badge">3</span>
+      </div>
+      <div class="quick-actions">
+        <a href="/admin/add-student.html" class="btn btn-secondary"><i class="fa-solid fa-plus"></i> Add Student</a>
+        <a href="/teachers/dashboard.html" class="btn btn-primary"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers Portal</a>
+      </div>
+      <div>Welcome, <strong>Admin</strong></div>
+    </div>
+  </header>
 
-<div class="topbar">
-  Karumande School — Admin Dashboard
-</div>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://dummyimage.com/60x60/0d47a1/ffffff.png&text=KL" alt="Karumande Link School" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="#" class="active"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+        <a href="/admin/announcements.html"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
+        <a href="/admin/reports.html"><i class="fa-solid fa-file-lines"></i> Reports</a>
+        <a href="/admin/settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
+        <div class="logout">
+          <a href="/admin/login.html" onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
 
-<div class="layout">
+    <main class="content">
+      <h1 class="page-title">Welcome back, Admin</h1>
+      <p class="page-subtitle">School overview • January 03, 2026</p>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <a href="dashboard.html" class="active">Dashboard</a>
-    <a href="admissions.html">Admissions</a>
-    <a href="students.html">Students</a>
-    <a href="fees.html">Fees</a>
-    <a href="payments.html">Payments</a>
-    <a href="results.html">Results</a>
-    <a href="reports.html">Reports</a>
-    <a href="#" class="logout" onclick="logout()">Logout</a>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-user-clock"></i></div>
+          <div class="stat-info"><h3>Pending Admissions</h3><p id="pendingAdmissions">8</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-info"><h3>Total Students</h3><p id="totalStudents">520</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+          <div class="stat-info"><h3>Fees Collected</h3><p id="feesCollected">KSh 3,240,000</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-info"><h3>Number of Teachers</h3><p id="totalteachers">50</p></div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>CBC Performance • Term 1 2026</h3>
+          <canvas id="performanceChart" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Fee Collection • This Term</h3>
+          <canvas id="feesChart" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>Recent Admissions <small>(Last 7 days)</small></h2>
+          <a href="/admin/recent-admissions.html" class="btn btn-primary">
+            <i class="fa-solid fa-list"></i> View All
+          </a>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Parent</th>
+                <th>Class</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="recentAdmissionsBody">
+              <!-- Recent admissions will be populated here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <!-- Main Content -->
-  <div class="content">
-
-    <!-- Stats -->
-    <div class="cards">
-      <div class="card">
-        <h3>Pending Admissions</h3>
-        <p id="pendingAdmissions">0</p>
-      </div>
-      <div class="card">
-        <h3>Total Students</h3>
-        <p id="totalStudents">0</p>
-      </div>
-      <div class="card">
-        <h3>Fees Collected</h3>
-        <p id="feesCollected">KES 0</p>
-      </div>
-      <div class="card">
-        <h3>Outstanding Balance</h3>
-        <p id="outstanding">KES 0</p>
-      </div>
-    </div>
-
-    <!-- Recent Admissions -->
-    <div class="section">
-      <h3>Recent Admissions</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>Class</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody id="recentAdmissions">
-          <tr>
-            <td colspan="4">Loading...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-  </div>
-</div>
-
-<script>
-  const token = localStorage.getItem('token');
-
-  if (!token) {
-    window.location.href = '/admin/login.html';
-  }
-
-  function logout() {
-    localStorage.removeItem('token');
-    window.location.href = '/admin/login.html';
-  }
-
-  // Example data loading (replace with real API calls)
-  document.getElementById('pendingAdmissions').textContent = 5;
-  document.getElementById('totalStudents').textContent = 312;
-  document.getElementById('feesCollected').textContent = 'KES 1,200,000';
-  document.getElementById('outstanding').textContent = 'KES 320,000';
-</script>
-
+  <!-- Local JS -->
+  <script src="/admin/icons-replace.js"></script>
+  <script src="/admin/dashboard.js"></script>
 </body>
 </html>

@@ -5,72 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Results Management | Admin</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      margin: 0;
-    }
-    header {
-      background: #111827;
-      color: #fff;
-      padding: 15px;
-    }
-    header button {
-      float: right;
-      background: red;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .container {
-      padding: 20px;
-    }
-    .filters {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    select, button {
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    table {
-      width: 100%;
-      background: #fff;
-      border-collapse: collapse;
-      box-shadow: 0 2px 6px rgba(0,0,0,.1);
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #e5e7eb;
-      text-align: center;
-    }
-    th {
-      background: #f9fafb;
-    }
-    .action-btn {
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .action-btn:hover {
-      background: #1e40af;
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
 
 <header>
   <strong>Admin Panel</strong> | Results
-  <button onclick="logout()">Logout</button>
+  <button id="logoutBtn">Logout</button>
 </header>
 
 <div class="container">
@@ -81,9 +22,20 @@
   <div class="filters">
     <select id="class">
       <option value="">Select Class</option>
+      <option>PlayGroup</option>
+      <option>PP1</option>
+      <option>PP2</option>
       <option>Grade 1</option>
       <option>Grade 2</option>
       <option>Grade 3</option>
+      <option>Grade 4</option>
+      <option>Grade 5</option>
+      <option>Grade 6</option>
+      <option>Grade 7X</option>
+      <option>Grade 7Y</option>
+      <option>Grade 8X</option>
+      <option>Grade 8Y</option>
+      <option>Grade 9</option>
     </select>
 
     <select id="term">
@@ -93,87 +45,26 @@
       <option>Term 3</option>
     </select>
 
-    <button onclick="fetchResults()">Load Results</button>
+    <button id="loadBtn">Load Results</button>
   </div>
 
   <!-- RESULTS TABLE -->
   <table>
     <thead>
-      <tr>
-        <th>Admission No</th>
-        <th>Name</th>
-        <th>Math</th>
-        <th>English</th>
-        <th>Science</th>
-        <th>Total</th>
-        <th>Grade</th>
-        <th>Action</th>
-      </tr>
+      <!-- Will be filled dynamically by JS -->
     </thead>
     <tbody id="resultsBody">
       <tr>
-        <td colspan="8">Select class and term</td>
+        <td colspan="10" style="padding:2rem; text-align:center; color:#666;">
+          Select class and term, then click "Load Results"
+        </td>
       </tr>
     </tbody>
   </table>
 
 </div>
 
-<script>
-  // Protect page
-  if (!localStorage.getItem('token')) {
-    window.location.href = '/login.html';
-  }
-
-  async function fetchResults() {
-    const cls = document.getElementById('class').value;
-    const term = document.getElementById('term').value;
-
-    if (!cls || !term) {
-      alert('Select class and term');
-      return;
-    }
-
-    // DEMO DATA (replace with API)
-    const demo = [
-      {
-        adm: 'ADM001',
-        name: 'John Doe',
-        math: 80,
-        eng: 75,
-        sci: 70
-      }
-    ];
-
-    const body = document.getElementById('resultsBody');
-    body.innerHTML = '';
-
-    demo.forEach(s => {
-      const total = s.math + s.eng + s.sci;
-      const grade = total >= 240 ? 'A' : total >= 180 ? 'B' : 'C';
-
-      body.innerHTML += `
-        <tr>
-          <td>${s.adm}</td>
-          <td>${s.name}</td>
-          <td>${s.math}</td>
-          <td>${s.eng}</td>
-          <td>${s.sci}</td>
-          <td>${total}</td>
-          <td>${grade}</td>
-          <td>
-            <button class="action-btn">Edit</button>
-          </td>
-        </tr>
-      `;
-    });
-  }
-
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
+<script src="/admin/results.js"></script>
 
 </body>
 </html>

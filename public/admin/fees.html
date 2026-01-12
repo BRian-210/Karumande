@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fee Structure | Karumande Link School</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" a href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-money-bill-wave"></i> Fee Structure 2025</h1>
+    <div class="topbar-actions">
+      <div>Welcome, <strong>Admin</strong></div>
+      <button style="background:rgba(255,255,255,0.2);padding:8px 16px;border:none;border-radius:8px;cursor:pointer;" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html" class="active"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+        <div class="logout">
+          <a onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="page-title">Fee Structure for Year 2025</div>
+      <p class="page-subtitle">Karumande Link Primary and Junior School • Term II 2025</p>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Annual School Fees Breakdown (KSh)</h2>
+          <p>All amounts are in Kenyan Shillings. Transport fee is calculated as KSh 1,000 × 3 months per term.</p>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Grade</th>
+                <th>Tuition Fee</th>
+                <th>Meals</th>
+                <th>Transport (3 Months)</th>
+                <th>Ream Paper</th>
+                <th>Total (KSh)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Playgroup</strong></td>
+                <td>3,000</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>8,400</strong></td>
+              </tr>
+              <tr>
+                <td><strong>PP1</strong></td>
+                <td>3,200</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>8,600</strong></td>
+              </tr>
+              <tr>
+                <td><strong>PP2</strong></td>
+                <td>3,200</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>8,600</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Grade 1</strong></td>
+                <td>4,100</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>9,500</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Grade 2</strong></td>
+                <td>4,100</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>9,500</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Grade 3</strong></td>
+                <td>4,100</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>9,500</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Grade 4</strong></td>
+                <td>4,300</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>9,700</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Grade 5</strong></td>
+                <td>4,300</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>9,700</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Grade 6</strong></td>
+                <td>4,300</td>
+                <td>2,200</td>
+                <td>3,000</td>
+                <td>200</td>
+                <td><strong>9,700</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <strong>Payment Instructions:</strong>
+          <ul>
+            <li><strong>1. EQUITY Paybill:</strong> 676554<br>
+                Account: <em>Child's name and class</em></li>
+            <li><strong>2. KCB Paybill:</strong> 522522<br>
+                Account: <em>6351744#child's name and class</em> (no spacing)</li>
+            <li><strong>3. FORTUNE Paybill:</strong> 852648<br>
+                Account: <em>70643#child's name and class</em></li>
+          </ul>
+          <p style="margin-top:16px;font-size:0.95rem;">
+            <strong>Note:</strong> Fees are payable per term. Contact the accounts office for any queries.
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Auth protection
+    if (!localStorage.getItem('adminToken')) {
+      window.location.href = '/admin/login.html';
+    }
+
+    function logout() {
+      if (confirm('Log out of admin panel?')) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminName');
+        window.location.href = '/admin/login.html';
+      }
+    }
+
+    // Mobile menu toggle
+    document.getElementById('mobileToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>

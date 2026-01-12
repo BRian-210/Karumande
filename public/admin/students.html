@@ -2,213 +2,215 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Fees Management | Admin</title>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      margin: 0;
-    }
-    header {
-      background: #0f172a;
-      color: white;
-      padding: 15px;
-    }
-    header button {
-      float: right;
-      background: red;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .container {
-      padding: 20px;
-    }
-    h2 {
-      margin-bottom: 10px;
-    }
-    .filters, .form {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    select, input, button {
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    button.primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button.primary:hover {
-      background: #1e40af;
-    }
-    table {
-      width: 100%;
-      background: white;
-      border-collapse: collapse;
-      box-shadow: 0 2px 6px rgba(0,0,0,.1);
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #e5e7eb;
-      text-align: center;
-    }
-    th {
-      background: #f1f5f9;
-    }
-    .badge {
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      color: white;
-    }
-    .paid { background: green; }
-    .partial { background: orange; }
-    .unpaid { background: red; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Students Overview | Karumande Link School</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" a href="/style.css"/>
 </head>
 <body>
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-users"></i> Students Overview</h1>
+    <div class="topbar-actions">
+      <div>Welcome, <strong id="adminName">Admin</strong></div>
+      <button class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;" onclick="logout()">Logout</button>
+    </div>
+  </header>
 
-<header>
-  <strong>Admin Panel</strong> | Fees Management
-  <button onclick="logout()">Logout</button>
-</header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html" class="active"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+        <div class="logout">
+          <a onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
 
-<div class="container">
+    <main class="content">
+      <h1 class="page-title">Students Overview</h1>
+      <p class="page-subtitle">Enrollment statistics as of <span id="currentDate">January 03, 2026</span></p>
 
-  <h2>Fee Structure</h2>
+      <!-- Enrollment Summary -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-number" id="totalStudents">--</div>
+          <div class="stat-label">Total Learners</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-mars"></i></div>
+          <div class="stat-number" id="totalBoys">--</div>
+          <div class="stat-label">Boys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-venus"></i></div>
+          <div class="stat-number" id="totalGirls">--</div>
+          <div class="stat-label">Girls</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-user-plus"></i></div>
+          <div class="stat-number" id="newAdmissions">--</div>
+          <div class="stat-label">New Admissions (2026)</div>
+        </div>
+      </div>
 
-  <!-- ADD FEE STRUCTURE -->
-  <div class="form">
-    <select id="class">
-      <option value="">Class</option>
-      <option>Grade 1</option>
-      <option>Grade 2</option>
-      <option>Grade 3</option>
-    </select>
+      <!-- Learners by Grade -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Learners by Grade</h2>
+          <div id="gradeLoading" class="loading">
+            <i class="fa-solid fa-spinner fa-spin"></i><br>Loading data from database...
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="gradeTable">
+            <thead>
+              <tr>
+                <th>Grade / Level</th>
+                <th>Boys</th>
+                <th>Girls</th>
+                <th>Total</th>
+                <th>% of School</th>
+              </tr>
+            </thead>
+            <tbody id="gradeTableBody">
+              <!-- Filled by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    <select id="term">
-      <option value="">Term</option>
-      <option>Term 1</option>
-      <option>Term 2</option>
-      <option>Term 3</option>
-    </select>
-
-    <input type="number" id="amount" placeholder="Amount" />
-    <button class="primary" onclick="saveFee()">Save Fee</button>
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Quick Actions</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+          <a href="/public/admin/add-student.html" class="btn" style="background:var(--brand);color:white;justify-content:center;">
+            <i class="fa-solid fa-user-plus"></i> Add New Student
+          </a>
+          <a href="/public/admin/students-list.html" class="btn" style="background:var(--success);color:white;justify-content:center;">
+            <i class="fa-solid fa-list"></i> View Full List
+          </a>
+          <a href="/public/admin/reports.html" class="btn" style="background:var(--accent);color:white;justify-content:center;">
+            <i class="fa-solid fa-file-export"></i> Export Report
+          </a>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <hr/>
+  <script>
+    const API_BASE = ''; // e.g., 'https://api.karumande.ac.ke' or leave empty for same origin
 
-  <h2>Student Fee Status</h2>
-
-  <!-- FILTERS -->
-  <div class="filters">
-    <select id="filterClass">
-      <option value="">Filter by Class</option>
-      <option>Grade 1</option>
-      <option>Grade 2</option>
-    </select>
-    <select id="filterTerm">
-      <option value="">Filter by Term</option>
-      <option>Term 1</option>
-      <option>Term 2</option>
-    </select>
-    <button onclick="loadFees()">Load</button>
-  </div>
-
-  <!-- FEES TABLE -->
-  <table>
-    <thead>
-      <tr>
-        <th>Admission No</th>
-        <th>Name</th>
-        <th>Total Fee</th>
-        <th>Paid</th>
-        <th>Balance</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="feesBody">
-      <tr>
-        <td colspan="7">Select filters to load data</td>
-      </tr>
-    </tbody>
-  </table>
-
-</div>
-
-<script>
-  // Protect route
-  if (!localStorage.getItem('token')) {
-    window.location.href = '/login.html';
-  }
-
-  function saveFee() {
-    const cls = document.getElementById('class').value;
-    const term = document.getElementById('term').value;
-    const amount = document.getElementById('amount').value;
-
-    if (!cls || !term || !amount) {
-      alert('All fields required');
-      return;
+    // Auth protection
+    if (!localStorage.getItem('adminToken')) {
+      window.location.href = '/admin/login.html';
     }
 
-    alert(`Fee saved for ${cls} - ${term}: ${amount}`);
-    // POST /api/fee-structures
-  }
+    // Set current date
+    document.getElementById('currentDate').textContent = 'January 03, 2026';
 
-  function loadFees() {
-    const body = document.getElementById('feesBody');
-    body.innerHTML = '';
+    async function loadStudentStats() {
+      try {
+        const token = localStorage.getItem('adminToken');
 
-    // DEMO DATA
-    const demo = [
-      {
-        adm: 'ADM001',
-        name: 'Jane Doe',
-        total: 30000,
-        paid: 20000
+        // Fetch total counts and gender breakdown
+        const summaryRes = await fetch(`${API_BASE}/api/students/summary`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!summaryRes.ok) throw new Error('Failed to load summary');
+
+        const summary = await summaryRes.json();
+
+        document.getElementById('totalStudents').textContent = summary.total || 0;
+        document.getElementById('totalBoys').textContent = summary.boys || 0;
+        document.getElementById('totalGirls').textContent = summary.girls || 0;
+        document.getElementById('newAdmissions').textContent = summary.new2026 || 0;
+
+        // Fetch per-grade breakdown
+        const gradeRes = await fetch(`${API_BASE}/api/students/by-grade`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!gradeRes.ok) throw new Error('Failed to load grade data');
+
+        const grades = await gradeRes.json(); // Expected: [{ grade: "Grade 3", boys: 30, girls: 32 }, ...]
+
+        const tbody = document.getElementById('gradeTableBody');
+        tbody.innerHTML = '';
+
+        let grandTotal = 0;
+        grades.forEach(g => {
+          const total = g.boys + g.girls;
+          grandTotal += total;
+          const percentage = summary.total ? ((total / summary.total) * 100).toFixed(1) : '0';
+
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${g.grade}</strong></td>
+              <td>${g.boys}</td>
+              <td>${g.girls}</td>
+              <td>${total}</td>
+              <td>${percentage}%</td>
+            </tr>
+          `;
+        });
+
+        // Add total row
+        tbody.innerHTML += `
+          <tr style="font-weight:700;background:#f0f7ff;">
+            <td>TOTAL</td>
+            <td>${summary.boys || 0}</td>
+            <td>${summary.girls || 0}</td>
+            <td>${summary.total || 0}</td>
+            <td>100%</td>
+          </tr>
+        `;
+
+        document.getElementById('gradeLoading').style.display = 'none';
+
+      } catch (err) {
+        console.error('Error loading student data:', err);
+        document.getElementById('gradeLoading').innerHTML = 
+          '<i class="fa-solid fa-exclamation-triangle" style="color:var(--warning);"></i><br>Failed to load data. Please try again.';
+        
+        // Fallback demo data
+        document.getElementById('totalStudents').textContent = '520';
+        document.getElementById('totalBoys').textContent = '248';
+        document.getElementById('totalGirls').textContent = '272';
+        document.getElementById('newAdmissions').textContent = '58';
       }
-    ];
+    }
 
-    demo.forEach(s => {
-      const balance = s.total - s.paid;
-      let status = 'unpaid';
-      if (balance === 0) status = 'paid';
-      else if (s.paid > 0) status = 'partial';
+    function logout() {
+      if (confirm('Log out of admin panel?')) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminName');
+        window.location.href = '/admin/login.html';
+      }
+    }
 
-      body.innerHTML += `
-        <tr>
-          <td>${s.adm}</td>
-          <td>${s.name}</td>
-          <td>${s.total}</td>
-          <td>${s.paid}</td>
-          <td>${balance}</td>
-          <td><span class="badge ${status}">${status}</span></td>
-          <td>
-            <button class="primary">View</button>
-          </td>
-        </tr>
-      `;
+    // Mobile menu toggle
+    document.getElementById('mobileToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
     });
-  }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/login.html';
-  }
-</script>
-
+    // Load data on page load
+    window.addEventListener('load', loadStudentStats);
+  </script>
 </body>
 </html>

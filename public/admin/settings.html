@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Site Settings — Admin</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="admin-page">
+    <main class="container">
+      <h1>Site Settings</h1>
+
+      <section class="card">
+        <h2>School Details</h2>
+        <div class="form-row">
+          <label for="schoolName">School Name</label>
+          <input id="schoolName" placeholder="Karumande Link School" />
+
+          <label for="schoolAddress">Address</label>
+          <input id="schoolAddress" placeholder="Street, Town, Country" />
+
+          <button id="saveDetails" class="btn primary">Save</button>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:12px;">
+        <h2>Site Logo</h2>
+        <div class="form-row">
+          <div>
+            <img id="logoPreview" src="/IMG-20250625-WA0010.jpg" alt="logo" style="height:80px;border:1px solid #ddd;padding:6px;border-radius:6px;" />
+          </div>
+          <div>
+            <input id="logoFile" type="file" accept="image/*" />
+            <button id="uploadLogo" class="btn">Upload Logo</button>
+          </div>
+        </div>
+        <div id="logoMsg" style="margin-top:8px;"></div>
+      </section>
+    </main>
+
+    <script src="/admin/settings.js" defer></script>
+  </body>
+</html>
