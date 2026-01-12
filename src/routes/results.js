@@ -10,8 +10,8 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
   const { page, limit, skip } = validatePagination(req.query);
   const filter = {};
-  if (req.query.term) filter.term = req.query.term;
-  if (req.query.studentId) filter.student = req.query.studentId;
+  if (req.query.class) filter.class = req.query.class;
+  if (req.query.year) filter.year = Number(req.query.year);
 
   if (req.user.role === 'parent') {
     const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
