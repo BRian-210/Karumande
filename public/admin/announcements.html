@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Announcements | Admin</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+<header>
+  <strong>Admin Panel</strong> | Announcements
+  <button id="logoutBtn">Logout</button>
+</header>
+
+<div class="container">
+  <h2>School Announcements</h2>
+
+  <!-- Announcement Form -->
+  <form id="announcementForm">
+    <input type="text" id="title" placeholder="Title" required/>
+    <textarea id="message" placeholder="Message" required></textarea>
+    <button type="submit">Publish</button>
+  </form>
+
+  <!-- Announcements List -->
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Message</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="announcementsBody">
+      <tr>
+        <td colspan="4" style="text-align:center; padding:2rem; color:#666;">
+          No announcements yet
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script src="/admin/announcements.js"></script>
+</body>
+</html>
