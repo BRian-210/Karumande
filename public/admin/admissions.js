@@ -48,28 +48,28 @@ async function loadApplications(status = 'pending') {
     }
 
     apps.forEach(app => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td><strong>${app.studentName}</strong></td>
-        <td>${app.parentName}<br><small>${app.email || '-'}</small></td>
-        <td>${app.phone}</td>
-        <td>${app.classApplied}</td>
-        <td>${formatDate(app.submittedAt)}</td>
-        <td><span class="status ${app.status}">${app.status}</span></td>
-        <td class="actions">
-          <button class="btn btn-view" onclick="viewApplication('${app._id}')">
-            <i class="fa-solid fa-eye"></i> View
-          </button>
-          ${app.status === 'pending' ? `
-            <button class="btn btn-approve" onclick="updateStatus('${app._id}', 'accepted')">
-              <i class="fa-solid fa-check"></i> Approve
-            </button>
-            <button class="btn btn-reject" onclick="updateStatus('${app._id}', 'rejected')">
-              <i class="fa-solid fa-times"></i> Reject
-            </button>
-          ` : '<em>Processed</em>'}
-        </td>
-      `;
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><strong>${app.studentName}</strong></td>
+    <td>${app.parentName}<br><small>${app.email || '-'}</small></td>
+    <td>${app.phone}</td>
+    <td>${app.classApplied}</td>
+    <td>${formatDate(app.submittedAt)}</td>
+    <td><span class="status ${app.status}">${app.status}</span></td>
+    <td class="actions">
+      <button class="btn btn-view" data-id="${app._id}" data-action="view">
+        <i class="fa-solid fa-eye"></i> View
+      </button>
+      ${app.status === 'pending' ? `
+        <button class="btn btn-approve" data-id="${app._id}" data-action="accept">
+          <i class="fa-solid fa-check"></i> Approve
+        </button>
+        <button class="btn btn-reject" data-id="${app._id}" data-action="reject">
+          <i class="fa-solid fa-times"></i> Reject
+        </button>
+      ` : '<em>Processed</em>'}
+    </td>
+  `;
       tbody.appendChild(row);
     });
 

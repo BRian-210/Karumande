@@ -9,7 +9,12 @@ const AdmissionSchema = new Schema({
   relationship: { type: String, trim: true, default: null },
 
   studentName: { type: String, required: true, trim: true },
-  gender: { type: String, enum: ['male', 'female', 'other'], default: 'other' },
+  gender: {
+  type: String,
+  enum: ['male', 'female', 'other'],
+  default: 'other',
+  set: v => v ? v.toLowerCase() : 'other'
+},
   dob: { type: Date },
   classApplied: { type: String },
   previousSchool: { type: String, default: null },

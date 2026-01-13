@@ -52,7 +52,7 @@ app.use(
         // Allow font files from Google and CDNJS (Font Awesome webfonts)
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         scriptSrc: ["'self'"], // Only external scripts (public/script.js)
-        imgSrc: ["'self'", "data:", "https:", "http:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
         connectSrc: ["'self'"],
         frameSrc: ["'self'", "https://www.google.com"],
       },
