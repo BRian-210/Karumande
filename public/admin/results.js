@@ -86,7 +86,7 @@ async function fetchResults() {
     }
 
     const data = await res.json();
-    const students = Array.isArray(data) ? data : (data.students || data.data || []);
+    const students = Array.isArray(data) ? data : ( data.data || []);
 
     if (!students.length) {
       showMessage(`No results found for ${cls} - ${term} (2026)`, 'error');
@@ -108,17 +108,14 @@ function renderResultsTable(students) {
 
   const table = elements.resultsBody.closest('table');
   const thead = table?.querySelector('thead');
-  if (!thead) {
-    console.error('Table header (<thead>) not found');
-    return;
-  }
+  if (!thead) return;
 
-  // Collect all subjects
+  // Collect subjects from all results
   const subjects = [...new Set(
-    students.flatMap(s => Object.keys(s.scores || s.results || {}))
+    students.flatMap(s => (s.subjects || []).map(sub => sub.name))
   )].sort();
 
-  // Update header
+  // Header
   thead.innerHTML = `
     <tr style="background:#0d47a1; color:white; text-align:center;">
       <th>Adm No</th>
@@ -130,34 +127,30 @@ function renderResultsTable(students) {
     </tr>
   `;
 
-  // Build rows
+  // Rows
   const rows = students.map(student => {
-    const scores = student.scores || student.results || {};
-    const total = subjects.reduce((sum, sub) => sum + (Number(scores[sub]) || 0), 0);
-    const max = subjects.length * 100;
-    const pct = max ? (total / max) * 100 : 0;
+    const subjMap = {};
+    (student.subjects || []).forEach(sub => {
+      subjMap[sub.name] = sub.score;
+    });
 
-    const grade = pct >= 80 ? 'A' :
-                  pct >= 70 ? 'B' :
-                  pct >= 60 ? 'C' :
-                  pct >= 50 ? 'D' :
-                  pct >= 40 ? 'E' : 'F';
-
-    const name = student.name || student.fullName || 'Unknown Student';
+    const total = student.total || 0;
+    const grade = student.grade || '-';
+    const name = student.student?.name || 'Unknown Student';
 
     let row = `<tr>
-      <td>${student.admissionNumber || student.adm || 'N/A'}</td>
+      <td>${student.student?.admissionNumber || 'N/A'}</td>
       <td><strong>${name}</strong></td>`;
 
     subjects.forEach(sub => {
-      row += `<td>${scores[sub] ?? '-'}</td>`;
+      row += `<td>${subjMap[sub] ?? '-'}</td>`;
     });
 
     row += `
-      <td><strong>${total}/${max}</strong></td>
+      <td><strong>${total}</strong></td>
       <td><strong style="color:${grade === 'A' ? 'green' : grade === 'F' ? 'red' : 'inherit'};">${grade}</strong></td>
       <td>
-        <button class="edit-btn" data-id="${student._id || ''}">✏️ Edit</button>
+        <button class="edit-btn" data-id="${student._id}">✏️ Edit</button>
       </td>
     </tr>`;
 
@@ -166,7 +159,7 @@ function renderResultsTable(students) {
 
   elements.resultsBody.innerHTML = rows;
 
-  // Attach edit button handlers
+  // Edit button handlers
   document.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
