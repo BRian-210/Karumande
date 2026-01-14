@@ -86,6 +86,10 @@ async function fetchResults() {
     }
 
     const data = await res.json();
+    console.log("Full API response:", data);
+console.log("Is array?", Array.isArray(data));
+console.log("First item keys:", data?.[0] ? Object.keys(data[0]) : "no items");
+console.log("First student full:", data?.[0] ? JSON.stringify(data[0], null, 2) : "empty");
     const students = Array.isArray(data) ? data : ( data.data || []);
 
     if (!students.length) {
