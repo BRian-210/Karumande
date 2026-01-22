@@ -48,19 +48,27 @@
     <button id="loadBtn">Load Results</button>
   </div>
 
+  <!-- MESSAGE AREA -->
+  <div id="message" class="message" style="display:none;"></div>
+
   <!-- RESULTS TABLE -->
-  <table>
-    <thead>
-      <!-- Will be filled dynamically by JS -->
-    </thead>
-    <tbody id="resultsBody">
-      <tr>
-        <td colspan="10" style="padding:2rem; text-align:center; color:#666;">
-          Select class and term, then click "Load Results"
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <section id="studentsSection" class="card" style="display:none;">
+    <h2 id="classTitle" style="margin-bottom: 20px; color: var(--brand-strong);"></h2>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Student Name</th>
+          <th>Admission No.</th>
+          <th>Subject</th>
+          <th>Max Score</th>
+          <th>Score</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+  </section> <!-- ✅ properly closed -->
 
 </div>
 

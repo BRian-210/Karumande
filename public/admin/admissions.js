@@ -1,5 +1,5 @@
 // public/admin/admissions.js
-// JS extracted from admissions.html to comply with CSP (no inline scripts)
+// Updated version – January 2026
 
 const token = localStorage.getItem('token');
 if (!token) {
@@ -36,8 +36,6 @@ async function loadApplications(status = 'pending') {
     if (!res.ok) throw new Error('Failed to load applications');
 
     const data = await res.json();
-
-    // API may return either an array or a paginated object { applications, pagination }
     const apps = Array.isArray(data) ? data : (data.applications || []);
 
     tbody.innerHTML = '';
@@ -48,32 +46,47 @@ async function loadApplications(status = 'pending') {
     }
 
     apps.forEach(app => {
-  const row = document.createElement('tr');
-  row.innerHTML = `
-    <td><strong>${app.studentName}</strong></td>
-    <td>${app.parentName}<br><small>${app.email || '-'}</small></td>
-    <td>${app.phone}</td>
-    <td>${app.classApplied}</td>
-    <td>${formatDate(app.submittedAt)}</td>
-    <td><span class="status ${app.status}">${app.status}</span></td>
-    <td class="actions">
-      <button class="btn btn-view" data-id="${app._id}" data-action="view">
-        <i class="fa-solid fa-eye"></i> View
-      </button>
-      ${app.status === 'pending' ? `
-        <button class="btn btn-approve" data-id="${app._id}" data-action="accept">
-          <i class="fa-solid fa-check"></i> Approve
-        </button>
-        <button class="btn btn-reject" data-id="${app._id}" data-action="reject">
-          <i class="fa-solid fa-times"></i> Reject
-        </button>
-      ` : '<em>Processed</em>'}
-    </td>
-  `;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${app.studentName}</strong></td>
+        <td>${app.parentName}<br><small>${app.email || '-'}</small></td>
+        <td>${app.phone}</td>
+        <td>${app.classApplied}</td>
+        <td>${formatDate(app.submittedAt)}</td>
+        <td><span class="status ${app.status}">${app.status}</span></td>
+        <td class="actions">
+          <button class="btn btn-view" data-id="${app._id}" data-action="view">
+            <i class="fa-solid fa-eye"></i> View
+          </button>
+          ${app.status === 'pending' ? `
+            <button class="btn btn-approve" data-id="${app._id}" data-action="accept">
+              <i class="fa-solid fa-check"></i> Approve
+            </button>
+            <button class="btn btn-reject" data-id="${app._id}" data-action="reject">
+              <i class="fa-solid fa-times"></i> Reject
+            </button>
+          ` : '<em>Processed</em>'}
+        </td>
+      `;
       tbody.appendChild(row);
     });
 
     table.style.display = 'table';
+
+    // ✅ Attach action handlers after rendering
+    tbody.querySelectorAll('button[data-action]').forEach(btn => {
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+
+      if (action === 'view') {
+        btn.addEventListener('click', () => viewApplication(id));
+      } else if (action === 'accept') {
+        btn.addEventListener('click', () => updateStatus(id, 'accepted'));
+      } else if (action === 'reject') {
+        btn.addEventListener('click', () => updateStatus(id, 'rejected'));
+      }
+    });
+
   } catch (err) {
     alert('Error loading applications: ' + err.message);
   } finally {

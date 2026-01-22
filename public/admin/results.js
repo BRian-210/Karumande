@@ -1,4 +1,4 @@
-// /admin/results.js - FINAL WORKING VERSION
+// /admin/results.js - Updated & Working Version (January 2026)
 
 const token = localStorage.getItem('token');
 if (!token) {
@@ -12,6 +12,8 @@ const elements = {
   loadBtn: document.getElementById('loadBtn'),
   logoutBtn: document.getElementById('logoutBtn'),
   resultsBody: document.getElementById('resultsBody'),
+  studentsSection: document.getElementById('studentsSection'),
+  classTitle: document.getElementById('classTitle'),
   messageEl: document.getElementById('message')
 };
 
@@ -32,7 +34,7 @@ function showMessage(text, type = 'error') {
     const colors = { error: '#d32f2f', success: '#2e7d32', loading: '#f57c00' };
     elements.resultsBody.innerHTML = `
       <tr>
-        <td colspan="10" style="text-align:center; padding:2rem; color:${colors[type] || '#d32f2f'}; font-weight:bold;">
+        <td colspan="6" style="text-align:center; padding:2rem; color:${colors[type] || '#d32f2f'}; font-weight:bold;">
           ${text}
         </td>
       </tr>
@@ -72,7 +74,6 @@ async function fetchResults() {
       }
     });
 
-    // Handle unauthorized access
     if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('token');
       showMessage('Session expired. Redirecting to login...', 'error');
@@ -87,14 +88,32 @@ async function fetchResults() {
 
     const data = await res.json();
     console.log("Full API response:", data);
-console.log("Is array?", Array.isArray(data));
-console.log("First item keys:", data?.[0] ? Object.keys(data[0]) : "no items");
-console.log("First student full:", data?.[0] ? JSON.stringify(data[0], null, 2) : "empty");
-    const students = Array.isArray(data) ? data : ( data.data || []);
+
+    const students = Array.isArray(data) ? data : (data.data || []);
+
+    console.log("Extracted students array length:", students.length);
+    console.log("Is students array?", Array.isArray(students));
+
+    if (students.length > 0) {
+      const first = students[0];
+      console.log("FIRST STUDENT FULL:", JSON.stringify(first, null, 2));
+      console.log("FIRST STUDENT KEYS:", Object.keys(first));
+    } else {
+      console.log("No students after extraction");
+    }
 
     if (!students.length) {
       showMessage(`No results found for ${cls} - ${term} (2026)`, 'error');
       return;
+    }
+
+    // Show the table section
+    if (elements.studentsSection) {
+      elements.studentsSection.style.display = 'block';
+    }
+
+    if (elements.classTitle) {
+      elements.classTitle.textContent = `${cls} — ${term} 2026  (${students.length} student${students.length !== 1 ? 's' : ''})`;
     }
 
     renderResultsTable(students);
@@ -107,69 +126,81 @@ console.log("First student full:", data?.[0] ? JSON.stringify(data[0], null, 2) 
 }
 
 // DYNAMIC TABLE RENDERER
-function renderResultsTable(students) {
-  if (!elements.resultsBody || !students.length) return;
+function renderResultsTable(results) {
+  const tbody = document.getElementById('resultsBody');
+  if (!tbody) {
+    console.error('Cannot find #resultsBody');
+    return;
+  }
 
-  const table = elements.resultsBody.closest('table');
-  const thead = table?.querySelector('thead');
-  if (!thead) return;
+  if (!results?.length) {
+    tbody.innerHTML = '<tr><td colspan="6">No results to display</td></tr>';
+    return;
+  }
 
-  // Collect subjects from all results
-  const subjects = [...new Set(
-    students.flatMap(s => (s.subjects || []).map(sub => sub.name))
-  )].sort();
+  let html = '';
 
-  // Header
-  thead.innerHTML = `
-    <tr style="background:#0d47a1; color:white; text-align:center;">
-      <th>Adm No</th>
-      <th>Name</th>
-      ${subjects.map(s => `<th>${s}</th>`).join('')}
-      <th>Total</th>
-      <th>Grade</th>
-      <th>Action</th>
-    </tr>
-  `;
+  html += `
+  <tr style="background:#e8f5e9; font-weight:bold;">
+    <td colspan="6">DEBUG: ${results.length} students loaded - table should show below</td>
+  </tr>
+`;
 
-  // Rows
-  const rows = students.map(student => {
-    const subjMap = {};
-    (student.subjects || []).forEach(sub => {
-      subjMap[sub.name] = sub.score;
-    });
+  results.forEach(result => {
+    const studentInfo = result.student || {};
+    const name = studentInfo.name || 'Unknown Student';
+    const admNo = studentInfo.admissionNumber || studentInfo._id || '—';
 
-    const total = student.total || 0;
-    const grade = student.grade || '-';
-    const name = student.student?.name || 'Unknown Student';
+    const subjects = Array.isArray(result.subjects) ? result.subjects : [];
 
-    let row = `<tr>
-      <td>${student.student?.admissionNumber || 'N/A'}</td>
-      <td><strong>${name}</strong></td>`;
+    if (subjects.length === 0) {
+      html += `
+        <tr>
+          <td>${name}</td>
+          <td>${admNo}</td>
+          <td colspan="4" style="text-align:center; color:#d32f2f; font-style:italic;">
+            No subjects recorded
+          </td>
+        </tr>
+      `;
+      return;
+    }
 
-    subjects.forEach(sub => {
-      row += `<td>${subjMap[sub] ?? '-'}</td>`;
-    });
+    const rowspan = Math.max(1, subjects.length);
 
-    row += `
-      <td><strong>${total}</strong></td>
-      <td><strong style="color:${grade === 'A' ? 'green' : grade === 'F' ? 'red' : 'inherit'};">${grade}</strong></td>
-      <td>
-        <button class="edit-btn" data-id="${student._id}">✏️ Edit</button>
-      </td>
-    </tr>`;
+    html += `
+      <tr>
+        <td rowspan="${rowspan}"><strong>${name}</strong></td>
+        <td rowspan="${rowspan}">${admNo}</td>
+        <td>${subjects[0]?.name || '—'}</td>
+        <td>${subjects[0]?.maxScore ?? 100}</td>
+        <td>${subjects[0]?.score ?? '—'}</td>
+        <td rowspan="${rowspan}">
+          <button class="edit-btn" data-id="${result._id}">Edit</button>
+        </td>
+      </tr>
+    `;
 
-    return row;
-  }).join('');
+    for (let i = 1; i < subjects.length; i++) {
+      const sub = subjects[i];
+      html += `
+        <tr>
+          <td>${sub.name || '—'}</td>
+          <td>${sub.maxScore ?? 100}</td>
+          <td>${sub.score ?? '—'}</td>
+        </tr>
+      `;
+    }
+  });
 
-  elements.resultsBody.innerHTML = rows;
-
-  // Edit button handlers
+  tbody.innerHTML = html;
+  // Attach edit button handlers
   document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      const name = btn.closest('tr')?.querySelector('td:nth-child(2)')?.textContent?.trim() || 'Student';
-      if (confirm(`Edit results for ${name}?`)) {
-        window.open(`/admin/edit-result.html?id=${id}`, '_blank');
+    btn.addEventListener('click', function() {
+      const resultId = this.dataset.id;
+      const studentName = this.closest('tr')?.querySelector('td strong')?.textContent?.trim() || 'this student';
+      if (confirm(`Open edit page for ${studentName}?`)) {
+        window.open(`/admin/edit-result.html?id=${resultId}`, '_blank');
       }
     });
   });

@@ -1,19 +1,20 @@
-// public/teachers/dashboard.js
-// Single, clean version – Teacher Dashboard for loading students and submitting results
+// Teachers Dashboard – Enter Results (updated January 2026)
+// Compatible with backend route: POST /api/results-batch
 
 const token = localStorage.getItem('token');
 if (!token) {
-  window.location.href = '/admin/login.html';
+  window.location.href = '/login.html'; // adjust if teachers have separate login
 }
 
-// DOM Elements – with fallback safety
 const elements = {
   classSelect: document.getElementById('classSelect'),
   termSelect: document.getElementById('termSelect'),
-  subjectInput: document.getElementById('subjectInput'),
+  subjectSelect: document.getElementById('subjectSelect'),
   maxScoreInput: document.getElementById('maxScore'),
   loadBtn: document.getElementById('loadBtn'),
-  submitClassBtn: document.getElementById('submitClassBtn'),
+  submitBtn: document.getElementById('submitClassBtn'),
+  clearBtn: document.getElementById('clearBtn'),
+  logoutBtn: document.getElementById('logoutBtn'),
   studentsSection: document.getElementById('studentsSection'),
   classTitle: document.getElementById('classTitle'),
   maxScoreDisplay: document.getElementById('maxScoreDisplay'),
@@ -21,82 +22,105 @@ const elements = {
   message: document.getElementById('message')
 };
 
-// Quick guard: if critical elements are missing, log error (helps debugging)
-Object.entries(elements).forEach(([key, el]) => {
-  if (!el) console.error(`Element not found: #${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
+// Logout
+elements.logoutBtn?.addEventListener('click', () => {
+  if (confirm('Log out of Teachers Dashboard?')) {
+    localStorage.removeItem('token');
+    window.location.href = '/login.html';
+  }
 });
 
 let currentStudents = [];
+const CURRENT_YEAR = 2026;
 
-// Utility: show feedback message
 function showMessage(text, type = 'info') {
-  const msg = elements.message;
-  if (!msg) return;
-  msg.textContent = text;
-  msg.className = `message ${type}`; // e.g., class="message error" or "message success"
-  msg.style.display = 'block';
-  setTimeout(() => { msg.style.display = 'none'; }, 5000); // auto-hide after 5s
+  if (!elements.message) return;
+  elements.message.textContent = text;
+  elements.message.className = `message ${type}`;
+  elements.message.style.display = 'block';
+  setTimeout(() => elements.message.style.display = 'none', 7000);
 }
 
-// Load students by class
-elements.loadBtn?.addEventListener('click', async () => {
-  const selectedClass = elements.classSelect?.value?.trim();
-  const subject = elements.subjectInput?.value?.trim();
-  const term = elements.termSelect?.value;
-  const maxScore = parseInt(elements.maxScoreInput?.value);
+function validateScoreInput(input, max) {
+  const val = input.value.trim();
+  if (val === '') {
+    input.style.borderColor = '';
+    input.setCustomValidity('');
+    return;
+  }
+  const num = Number(val);
+  if (isNaN(num) || num < 0 || num > max) {
+    input.style.borderColor = 'var(--error, red)';
+    input.setCustomValidity(`Score must be 0–${max}`);
+  } else {
+    input.style.borderColor = '';
+    input.setCustomValidity('');
+  }
+}
 
-  if (!selectedClass || !subject || !term || isNaN(maxScore) || maxScore < 1) {
-    showMessage('Please fill all fields correctly (class, subject, term, max score).', 'error');
+elements.loadBtn?.addEventListener('click', async () => {
+  const cls = elements.classSelect.value?.trim();
+  const term = elements.termSelect.value?.trim();
+  const subject = elements.subjectSelect.value?.trim();
+  const maxScore = Number(elements.maxScoreInput.value);
+
+  if (!cls || !term || !subject || isNaN(maxScore) || maxScore < 1) {
+    showMessage('Please complete all fields.', 'error');
     return;
   }
 
-  showMessage('Loading students...', 'info');
+  showMessage('Loading students...', 'loading');
 
   try {
-    const res = await fetch(`/api/students?classLevel=${encodeURIComponent(selectedClass)}`, {
+    const query = new URLSearchParams({
+      classLevel: cls,
+      year: CURRENT_YEAR
+    }).toString();
+
+    const res = await fetch(`/api/students?${query}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('token');
-      window.location.href = '/admin/login.html';
+      window.location.href = '/login.html';
       return;
     }
 
-    if (!res.ok) throw new Error('Failed to load students');
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || `HTTP ${res.status}`);
+    }
 
     const payload = await res.json();
-    const students = Array.isArray(payload.data) ? payload.data : payload || [];
+    const students = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : []);
 
     if (students.length === 0) {
-      showMessage('No students found in this class.', 'error');
-      elements.studentsSection ? (elements.studentsSection.style.display = 'none') : null;
+      showMessage('No students found for this class.', 'error');
+      elements.studentsSection.style.display = 'none';
       return;
     }
 
-    // Pre-fill existing scores if any (adjust this logic based on your actual result schema)
-    currentStudents = students.map((s, i) => ({
-      id: s._id,
-      name: s.name || 'Unknown',
-      admissionNo: s.admissionNumber || s.admissionNo || '-',
-      index: i + 1,
-      score: '' // You can enhance this to pull previous scores if API supports it
+    currentStudents = students.map((s, idx) => ({
+      _id: s._id,
+      name: s.name || s.fullName || s.studentName || 'Unknown',
+      admissionNo: s.admissionNumber || s.admNo || s.regNo || '-',
+      index: idx + 1,
+      score: s.score ?? s.currentScore ?? ''  // pre-fill if backend sends existing score
     }));
 
-    renderStudentsTable(selectedClass, subject, term, maxScore);
-    elements.studentsSection ? (elements.studentsSection.style.display = 'block') : null;
-    showMessage(`${students.length} students loaded.`, 'success');
+    renderTable(cls, subject, term, maxScore);
+    elements.studentsSection.style.display = 'block';
+    showMessage(`Loaded ${students.length} students.`, 'success');
 
   } catch (err) {
-    console.error(err);
-    showMessage(err.message || 'Error loading students', 'error');
+    console.error('Load students error:', err);
+    showMessage(`Error loading students: ${err.message}`, 'error');
   }
 });
 
-function renderStudentsTable(className, subject, term, maxScore) {
-  if (!elements.classTitle || !elements.maxScoreDisplay || !elements.studentsBody) return;
-
-  elements.classTitle.textContent = `${className} — ${subject} (${term}, 2026)`;
+function renderTable(className, subject, term, maxScore) {
+  elements.classTitle.textContent = `${className} – ${subject} (${term} 2026)`;
   elements.maxScoreDisplay.textContent = maxScore;
 
   elements.studentsBody.innerHTML = currentStudents.map(student => `
@@ -105,78 +129,94 @@ function renderStudentsTable(className, subject, term, maxScore) {
       <td>${student.name}</td>
       <td>${student.admissionNo}</td>
       <td>
-        <input
-          type="number"
-          class="score-input"
-          min="0"
-          max="${maxScore}"
-          value="${student.score}"
-          data-id="${student.id}"
-          placeholder="0"
-          required
-        />
+        <input type="number"
+               class="score-input"
+               min="0"
+               max="${maxScore}"
+               step="1"
+               value="${student.score}"
+               data-id="${student._id}"
+               placeholder="—"
+               required />
       </td>
     </tr>
   `).join('');
+
+  // Attach real-time validation (CSP-safe, no inline handlers)
+  elements.studentsBody.querySelectorAll('.score-input').forEach(input => {
+    input.addEventListener('input', () => validateScoreInput(input, maxScore));
+  });
 }
 
-// Submit results
-elements.submitClassBtn?.addEventListener('click', async () => {
-  const maxScore = parseInt(elements.maxScoreInput?.value);
-  const scoreInputs = document.querySelectorAll('.score-input');
+elements.submitBtn?.addEventListener('click', async () => {
+  const maxScore = Number(elements.maxScoreInput.value);
+  const inputs = document.querySelectorAll('.score-input');
 
-  const results = [];
-  let hasError = false;
-
-  scoreInputs.forEach(input => {
-    const score = parseInt(input.value);
-    if (isNaN(score) || score < 0 || score > maxScore) {
-      input.style.borderColor = 'red';
-      hasError = true;
-    } else {
-      input.style.borderColor = '';
-      results.push({
-        studentId: input.dataset.id,
-        score
-      });
-    }
+  // Client-side validation (already done earlier, but double-check)
+  const invalid = Array.from(inputs).filter(input => {
+    const val = Number(input.value);
+    return isNaN(val) || val < 0 || val > maxScore;
   });
 
-  if (hasError || results.length === 0) {
-    showMessage('Please enter valid scores (0–' + maxScore + ') for all students.', 'error');
+  if (invalid.length > 0) {
+    invalid.forEach(i => i.reportValidity());
+    showMessage(`Please correct ${invalid.length} invalid score(s).`, 'error');
     return;
   }
 
-  const body = {
-    class: elements.classSelect.value,
+  // Prepare payload – only send what the backend actually uses
+  const payload = {
     term: elements.termSelect.value,
-    subject: elements.subjectInput.value.trim(),
-    year: 2026,
+    subject: elements.subjectSelect.value,
     maxScore,
-    results
+    results: Array.from(inputs).map(input => ({
+      studentId: input.dataset.id,
+      score: Number(input.value) || 0
+    }))
   };
 
+  showMessage('Saving results...', 'loading');
+
   try {
-    const res = await fetch('/api/teachers/results-batch', {  // or '/api/results/bulk' – use consistent endpoint
+    const res = await fetch('/api/teachers/results-batch', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to save results');
+      const errData = await res.json().catch(() => ({}));
+      const errorMsg = errData.message 
+        || (errData.errors?.[0]?.msg) 
+        || `Server error (${res.status})`;
+      throw new Error(errorMsg);
     }
 
     const data = await res.json();
-    showMessage(`Success! ${data.saved || results.length} results saved.`, 'success');
 
-    // Optional: clear inputs or disable button
+    // Your backend returns { saved: number, failed: array }
+    const savedCount = data.saved ?? data.modified ?? results.length;
+    const failedCount = data.failed?.length ?? 0;
+
+    if (failedCount > 0) {
+      showMessage(
+        `Saved ${savedCount} results. ${failedCount} failed. Check console.`,
+        'warning'
+      );
+      console.warn('Failed saves:', data.failed);
+    } else {
+      showMessage(`Success! ${savedCount} results saved.`, 'success');
+    }
+
+    // Optional: prevent double-submit until page reload
+    // elements.submitBtn.disabled = true;
+    // elements.submitBtn.textContent = 'Saved ✓';
+
   } catch (err) {
-    console.error(err);
-    showMessage(err.message || 'Error submitting results', 'error');
+    console.error('Submit error:', err);
+    showMessage(`Could not save results: ${err.message}`, 'error');
   }
 });
