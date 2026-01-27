@@ -106,6 +106,98 @@ router.post(
   }
 );
 
+// Marksheet-style bulk submit: many subjects per student for a class + term
+router.post(
+  '/results-grid',
+  requireAuth,
+  requireRole('admin', 'teacher'),
+  [
+    body('classLevel').isString().trim().notEmpty(),
+    body('term').isIn(TERMS),
+    body('results').isArray({ min: 1 }),
+    body('results.*.studentId').isMongoId(),
+    body('results.*.subjects').isArray({ min: 1 }),
+    body('results.*.subjects.*.name').isString().trim().notEmpty(),
+    body('results.*.subjects.*.score').isNumeric(),
+    body('results.*.subjects.*.maxScore').optional().isNumeric()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { classLevel, term, results } = req.body;
+    const now = new Date();
+
+    // Enforce due dates for teachers (admins can always edit)
+    if (req.user.role === 'teacher') {
+      const classDueDate = await ResultDueDate.findOne({ classLevel, term, subject: null }).lean();
+      if (classDueDate && new Date(classDueDate.dueDate) < now) {
+        return res.status(403).json({
+          message: `Submission deadline has passed for ${classLevel} - ${term}. Only admins can edit results now.`
+        });
+      }
+      // If subject-specific due dates exist and are past, block saving those subjects
+      const allSubjects = new Set();
+      results.forEach(r => (r.subjects || []).forEach(s => allSubjects.add(s.name)));
+      const subjectDueDates = await ResultDueDate.find({
+        classLevel,
+        term,
+        subject: { $in: Array.from(allSubjects) }
+      }).lean();
+      const locked = subjectDueDates.filter(dd => new Date(dd.dueDate) < now).map(dd => dd.subject);
+      if (locked.length > 0) {
+        return res.status(403).json({
+          message: `Submission deadline has passed for subject(s): ${locked.join(', ')}. Only admins can edit these now.`
+        });
+      }
+    }
+
+    const saved = [];
+    const failed = [];
+
+    for (const r of results) {
+      try {
+        const student = await Student.findById(r.studentId).lean();
+        if (!student) {
+          failed.push({ studentId: r.studentId, message: 'Student not found' });
+          continue;
+        }
+        // Safety: ensure student belongs to classLevel
+        if (student.classLevel !== classLevel) {
+          failed.push({ studentId: r.studentId, message: `Student not in class ${classLevel}` });
+          continue;
+        }
+
+        let doc = await Result.findOne({ student: r.studentId, term });
+        if (!doc) {
+          doc = new Result({ student: r.studentId, term, subjects: [], total: 0, grade: '' });
+        }
+
+        // Upsert each subject into doc.subjects
+        for (const subj of r.subjects) {
+          const idx = doc.subjects.findIndex(s => s.name.toLowerCase() === String(subj.name).toLowerCase());
+          const score = Number(subj.score || 0);
+          const maxScore = Number(subj.maxScore || 100);
+          if (idx >= 0) {
+            doc.subjects[idx].score = score;
+            doc.subjects[idx].maxScore = maxScore;
+          } else {
+            doc.subjects.push({ name: String(subj.name), score, maxScore });
+          }
+        }
+
+        doc.total = doc.subjects.reduce((sum, s) => sum + Number(s.score || 0), 0);
+        await doc.save();
+        saved.push({ studentId: r.studentId });
+      } catch (err) {
+        failed.push({ studentId: r.studentId, message: err.message });
+      }
+    }
+
+    return res.json({ saved: saved.length, failed });
+  }
+);
+
   // Create or update a due date for results submission for a class/term (optional subject)
   router.post(
     '/result-due',

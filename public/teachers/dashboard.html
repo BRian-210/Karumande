@@ -24,7 +24,7 @@
           <label for="classSelect">Class</label>
           <select id="classSelect" required>
             <option value="">Select Class</option>
-            <option>Playgroup</option>
+            <option>PlayGroup</option>
             <option>PP1</option>
             <option>PP2</option>
             <option>Grade 1</option>
@@ -49,31 +49,9 @@
           </select>
         </div>
 
-        <div>
-          <label for="subjectSelect">Subject</label>
-          <select id="subjectSelect" required>
-            <option value="">Select Subject</option>
-            <option>Mathematics</option>
-            <option>English</option>
-            <option>Kiswahili</option>
-            <option>Science</option>
-            <option>Social Studies</option>
-            <option>CRE / IRE</option>
-            <option>Art & Craft</option>
-            <option>Music</option>
-            <option>Physical Education</option>
-            <!-- Add more subjects your school offers -->
-          </select>
-        </div>
-
-        <div>
-          <label for="maxScore">Max Score</label>
-          <input type="number" id="maxScore" value="100" min="1" max="1000" required />
-        </div>
-
         <div class="action-cell">
           <label> </label>
-          <button id="loadBtn" class="btn primary">Load Students</button>
+          <button id="loadBtn" class="btn primary">Load Learners</button>
         </div>
       </div>
     </section>
@@ -85,12 +63,8 @@
       <div class="table-container">
         <table class="table results-table">
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Student Name</th>
-              <th>Adm No.</th>
-              <th>Score <small>(out of <span id="maxScoreDisplay"></span>)</small></th>
-            </tr>
+            <tr id="headerRow"></tr>
+            <tr id="outOfRow"></tr>
           </thead>
           <tbody id="studentsBody"></tbody>
         </table>
