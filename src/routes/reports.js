@@ -111,22 +111,17 @@ function calculateGrade(percent) {
   return 'E';
 }
 
-function renderHeader(doc, title, schoolName, schoolAddress) {
-  // default logo path, may be overridden by settings attached to the document
+function renderHeader(doc, title) {
+  // default logo path, may be overridden by settings
   const defaultLogo = path.resolve(__dirname, '../../public/IMG-20250625-WA0010.jpg');
   const logoPath = doc._reportLogoPath || defaultLogo;
   const left = 50;
   const top = 40;
-  if (logoPath && fs.existsSync(logoPath)) {
+  if (fs.existsSync(logoPath)) {
     try { doc.image(logoPath, left, top, { width: 60 }); } catch (e) { /* ignore image problems */ }
   }
-
-  const name = schoolName || 'Karumande Link School';
-  const address = schoolAddress || '';
-
-  doc.fontSize(16).text(name, 130, top + 6);
-  if (address) doc.fontSize(10).text(address, 130, top + 28);
-  if (title) doc.fontSize(12).text(title, 130, top + 44);
+  doc.fontSize(16).text('Karumande Link School', 130, top + 6);
+  if (title) doc.fontSize(12).text(title, 130, top + 28);
   doc.moveDown(2);
   doc.moveTo(50, top + 70).lineTo(545, top + 70).stroke();
   doc.moveDown();
@@ -211,11 +206,9 @@ router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admi
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="report-${classLevel}-${term}.pdf"`);
 
-    // get configured logo and school details
-    const settingsArr = await SiteConfig.find({ key: { $in: ['logoPath', 'schoolName', 'schoolAddress'] } }).lean();
-    const settings = {};
-    settingsArr.forEach(i => (settings[i.key] = i.value));
-    const logo = settings.logoPath ? path.join(process.cwd(), 'public', settings.logoPath.replace(/^\//, '')) : null;
+    // get configured logo path if set
+    const cfg = await SiteConfig.findOne({ key: 'logoPath' }).lean();
+    const logo = cfg?.value ? path.join(process.cwd(), 'public', cfg.value.replace(/^\//, '')) : null;
 
     const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
     // attach logo path to doc so renderHeader can access
@@ -223,7 +216,7 @@ router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admi
     doc.pipe(res);
 
     // Cover / summary page
-    renderHeader(doc, `${classLevel} — ${term} Report Cards`, settings.schoolName, settings.schoolAddress);
+    renderHeader(doc, `${classLevel} — ${term} Report Cards`);
     doc.fontSize(12).text(`Generated: ${new Date().toLocaleString()}`);
     doc.moveDown();
     doc.fontSize(12).text('Class Summary', { underline: true });
@@ -246,7 +239,7 @@ router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admi
     for (let i = 0; i < students.length; i++) {
       const s = students[i];
       const r = await buildStudentReport(s, term);
-      renderHeader(doc, `${s.name} — ${s.classLevel}`, settings.schoolName, settings.schoolAddress);
+      renderHeader(doc, `${s.name} — ${s.classLevel}`);
       doc.fontSize(12).text(`Admission No: ${s.admissionNumber || '-'}`);
       doc.fontSize(12).text(`Term: ${term}`);
       doc.moveDown(0.5);
@@ -337,11 +330,9 @@ router.get('/student/:id/report.pdf', requireAuth, requireRole('admin', 'teacher
     const results = await Result.find({ student: studentId }).lean();
 
 
-    // get settings for logo and school details
-    const settingsArr = await SiteConfig.find({ key: { $in: ['logoPath', 'schoolName', 'schoolAddress'] } }).lean();
-    const settings = {};
-    settingsArr.forEach(i => (settings[i.key] = i.value));
-    const logo = settings.logoPath ? path.join(process.cwd(), 'public', settings.logoPath.replace(/^\//, '')) : null;
+    // configured logo
+    const cfg = await SiteConfig.findOne({ key: 'logoPath' }).lean();
+    const logo = cfg?.value ? path.join(process.cwd(), 'public', cfg.value.replace(/^\//, '')) : null;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="report-${student.name || student._id}.pdf"`);
@@ -350,7 +341,7 @@ router.get('/student/:id/report.pdf', requireAuth, requireRole('admin', 'teacher
     if (logo) doc._reportLogoPath = logo;
     doc.pipe(res);
 
-    renderHeader(doc, 'Report Card', settings.schoolName, settings.schoolAddress);
+    renderHeader(doc, 'Report Card');
     doc.fontSize(12).text(`Name: ${student.name || ''}`);
     doc.text(`Class: ${student.classLevel || ''}`);
     doc.text(`Admission No: ${student.admissionNumber || ''}`);
