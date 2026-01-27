@@ -9,6 +9,9 @@ const router = express.Router();
 
 const POPULATE_PARENT = { path: 'parent', select: 'name email role' };
 
+// Helpers
+const GENDERS = ['Male', 'Female', 'Other'];
+
 router.get(
   '/',
   requireAuth,
@@ -16,6 +19,14 @@ router.get(
     const { page, limit, skip } = validatePagination(req.query);
 
     const query = { active: true };
+    // Optional search (name or admission number)
+    if (typeof req.query.search === 'string' && req.query.search.trim()) {
+      const q = req.query.search.trim();
+      query.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { admissionNumber: { $regex: q, $options: 'i' } },
+      ];
+    }
     // Optional filter by class level (e.g., 'Grade 1', 'PlayGroup')
     if (req.query.classLevel) {
       // Only accept known class levels
@@ -48,11 +59,70 @@ router.get(
     });
   }
 );
+
+// Summary counts for admin dashboard
+router.get('/summary', requireAuth, async (req, res) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const startOfYear = new Date(Date.UTC(year, 0, 1));
+  const startOfNextYear = new Date(Date.UTC(year + 1, 0, 1));
+
+  const [total, boys, girls, newThisYear] = await Promise.all([
+    Student.countDocuments({ active: true }),
+    Student.countDocuments({ active: true, gender: 'Male' }),
+    Student.countDocuments({ active: true, gender: 'Female' }),
+    Student.countDocuments({ active: true, createdAt: { $gte: startOfYear, $lt: startOfNextYear } }),
+  ]);
+
+  return res.json({
+    total,
+    boys,
+    girls,
+    new2026: year === 2026 ? newThisYear : newThisYear, // keep key expected by frontend
+    newThisYear,
+    year,
+  });
+});
+
+// Learners by grade breakdown for dashboard table
+router.get('/by-grade', requireAuth, async (req, res) => {
+  const rows = await Student.aggregate([
+    { $match: { active: true } },
+    { $group: { _id: { classLevel: '$classLevel', gender: '$gender' }, count: { $sum: 1 } } },
+  ]);
+
+  const map = new Map(); // classLevel => { grade, boys, girls }
+  for (const r of rows) {
+    const grade = r._id.classLevel;
+    const gender = r._id.gender;
+    const count = r.count || 0;
+    const entry = map.get(grade) || { grade, boys: 0, girls: 0 };
+    if (gender === 'Male') entry.boys += count;
+    if (gender === 'Female') entry.girls += count;
+    map.set(grade, entry);
+  }
+
+  // Sort by known class order
+  const order = CLASS_LEVELS;
+  const out = Array.from(map.values()).sort((a, b) => {
+    const ia = order.indexOf(a.grade);
+    const ib = order.indexOf(b.grade);
+    if (ia === -1 && ib === -1) return a.grade.localeCompare(b.grade);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  return res.json(out);
+});
+
 const createStudentValidation = [
   body('name').isString().trim().notEmpty().withMessage('Student name is required'),
   body('classLevel')
     .isIn(CLASS_LEVELS)
     .withMessage(`classLevel must be one of: ${CLASS_LEVELS.join(', ')}`),
+  body('gender').isIn(GENDERS).withMessage(`gender must be one of: ${GENDERS.join(', ')}`),
+  body('dob').isISO8601().withMessage('dob must be a valid date (YYYY-MM-DD)').toDate(),
   body('parentId')
     .optional()
     .isMongoId()
@@ -75,7 +145,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, classLevel, parentId, stream, admissionNumber } = req.body;
+    const { name, classLevel, parentId, stream, admissionNumber, gender, dob } = req.body;
     let parent = null;
     if (parentId) {
       parent = await User.findOne({ _id: parentId, role: 'parent' });
@@ -89,6 +159,8 @@ router.post(
       classLevel,
       stream: stream?.trim(),
       admissionNumber: admissionNumber?.trim(),
+      gender,
+      dob,
       parent: parent?._id,
     });
     await student.populate(POPULATE_PARENT);
@@ -105,6 +177,8 @@ const updateStudentValidation = [
     .optional()
     .isIn(CLASS_LEVELS)
     .withMessage(`classLevel must be one of: ${CLASS_LEVELS.join(', ')}`),
+  body('gender').optional().isIn(GENDERS).withMessage(`gender must be one of: ${GENDERS.join(', ')}`),
+  body('dob').optional().isISO8601().withMessage('dob must be a valid date (YYYY-MM-DD)').toDate(),
   body('stream').optional().isString().trim(),
   body('admissionNumber').optional().isString().trim(),
   body('status')
@@ -112,6 +186,13 @@ const updateStudentValidation = [
     .isIn(['active', 'graduated', 'transferred']),
   body('active').optional().isBoolean(),
 ];
+
+// Get single student (for edit page)
+router.get('/:id', requireAuth, async (req, res) => {
+  const student = await Student.findById(req.params.id).populate(POPULATE_PARENT);
+  if (!student) return res.status(404).json({ message: 'Student not found' });
+  return res.json({ data: student });
+});
 
 router.patch(
   '/:id',
@@ -188,5 +269,20 @@ router.post(
     });
   }
 );
+
+// Delete (soft-delete) student: admin only
+router.delete('/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  const student = await Student.findByIdAndUpdate(
+    req.params.id,
+    { active: false },
+    { new: true }
+  ).populate(POPULATE_PARENT);
+
+  if (!student) return res.status(404).json({ message: 'Student not found' });
+  return res.json({ message: 'Student deleted successfully', data: student });
+});
 
 module.exports = router;

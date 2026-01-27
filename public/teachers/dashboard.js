@@ -1,9 +1,12 @@
 // Teachers Dashboard – Enter Results (updated January 2026)
-// Compatible with backend route: POST /api/results-batch
+// Uses:
+// - GET  /api/students?classLevel=CLASS
+// - GET  /api/results?classLevel=CLASS&term=TERM  (to pre-fill existing scores)
+// - POST /api/teachers/results-batch                (to save scores in bulk)
 
 const token = localStorage.getItem('token');
 if (!token) {
-  window.location.href = '/login.html'; // adjust if teachers have separate login
+  window.location.href = '/teachers/login.html';
 }
 
 const elements = {
@@ -26,11 +29,12 @@ const elements = {
 elements.logoutBtn?.addEventListener('click', () => {
   if (confirm('Log out of Teachers Dashboard?')) {
     localStorage.removeItem('token');
-    window.location.href = '/login.html';
+    window.location.href = '/teachers/login.html';
   }
 });
 
 let currentStudents = [];
+let isPastDueDate = false;
 const CURRENT_YEAR = 2026;
 
 function showMessage(text, type = 'info') {
@@ -72,18 +76,50 @@ elements.loadBtn?.addEventListener('click', async () => {
   showMessage('Loading students...', 'loading');
 
   try {
-    const query = new URLSearchParams({
+    // 0) Check due date first
+    const dueDateQuery = new URLSearchParams({
       classLevel: cls,
-      year: CURRENT_YEAR
+      term: term
+    }).toString();
+    
+    const dueDateRes = await fetch(`/api/teachers/result-due?${dueDateQuery}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (dueDateRes.ok) {
+      const dueDates = await dueDateRes.json();
+      const now = new Date();
+      
+      // Check for class-level due date
+      const classDueDate = dueDates.find(dd => !dd.subject);
+      // Check for subject-specific due date
+      const subjectDueDate = dueDates.find(dd => dd.subject && dd.subject.toLowerCase() === subject.toLowerCase());
+      
+      const relevantDueDate = subjectDueDate || classDueDate;
+      
+      if (relevantDueDate && new Date(relevantDueDate.dueDate) < now) {
+        isPastDueDate = true;
+        showMessage(
+          `⚠️ Submission deadline has passed (${new Date(relevantDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
+          'error'
+        );
+      } else {
+        isPastDueDate = false;
+      }
+    }
+
+    // 1) Load students in selected class
+    const studentsQuery = new URLSearchParams({
+      classLevel: cls
     }).toString();
 
-    const res = await fetch(`/api/students?${query}`, {
+    const res = await fetch(`/api/students?${studentsQuery}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('token');
-      window.location.href = '/login.html';
+      window.location.href = '/teachers/login.html';
       return;
     }
 
@@ -101,17 +137,53 @@ elements.loadBtn?.addEventListener('click', async () => {
       return;
     }
 
+    // 2) Load existing results for this class & term, to pre-fill scores for the chosen subject
+    const resultsQuery = new URLSearchParams({
+      classLevel: cls,
+      term: term
+    }).toString();
+
+    const resResults = await fetch(`/api/results?${resultsQuery}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    let existingScores = new Map(); // studentId -> score for selected subject
+    if (resResults.ok) {
+      const resultsPayload = await resResults.json();
+      const results = Array.isArray(resultsPayload.data)
+        ? resultsPayload.data
+        : (Array.isArray(resultsPayload) ? resultsPayload : []);
+
+      results.forEach(r => {
+        const subj = Array.isArray(r.subjects)
+          ? r.subjects.find(s => s.name?.toLowerCase() === subject.toLowerCase())
+          : null;
+        if (subj && r.student?._id) {
+          existingScores.set(String(r.student._id), subj.score ?? '');
+        }
+      });
+    }
+
+    // 3) Build currentStudents with any existing score for this subject
     currentStudents = students.map((s, idx) => ({
       _id: s._id,
       name: s.name || s.fullName || s.studentName || 'Unknown',
       admissionNo: s.admissionNumber || s.admNo || s.regNo || '-',
       index: idx + 1,
-      score: s.score ?? s.currentScore ?? ''  // pre-fill if backend sends existing score
+      score: existingScores.get(String(s._id)) ?? ''  // pre-fill if we have previous score
     }));
 
     renderTable(cls, subject, term, maxScore);
     elements.studentsSection.style.display = 'block';
-    showMessage(`Loaded ${students.length} students.`, 'success');
+    
+    if (isPastDueDate) {
+      showMessage(
+        `⚠️ Submission deadline has passed. You can view results but cannot edit them. Only admins can make changes.`,
+        'error'
+      );
+    } else {
+      showMessage(`Loaded ${students.length} students.`, 'success');
+    }
 
   } catch (err) {
     console.error('Load students error:', err);
@@ -122,6 +194,9 @@ elements.loadBtn?.addEventListener('click', async () => {
 function renderTable(className, subject, term, maxScore) {
   elements.classTitle.textContent = `${className} – ${subject} (${term} 2026)`;
   elements.maxScoreDisplay.textContent = maxScore;
+
+  // Disable inputs if past due date
+  const inputDisabled = isPastDueDate ? 'disabled style="background:#f3f4f6;cursor:not-allowed;"' : '';
 
   elements.studentsBody.innerHTML = currentStudents.map(student => `
     <tr>
@@ -137,10 +212,26 @@ function renderTable(className, subject, term, maxScore) {
                value="${student.score}"
                data-id="${student._id}"
                placeholder="—"
+               ${inputDisabled}
                required />
       </td>
     </tr>
   `).join('');
+  
+  // Disable submit button if past due date
+  if (elements.submitBtn) {
+    if (isPastDueDate) {
+      elements.submitBtn.disabled = true;
+      elements.submitBtn.style.opacity = '0.6';
+      elements.submitBtn.style.cursor = 'not-allowed';
+      elements.submitBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Submission Closed';
+    } else {
+      elements.submitBtn.disabled = false;
+      elements.submitBtn.style.opacity = '1';
+      elements.submitBtn.style.cursor = 'pointer';
+      elements.submitBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save All Results';
+    }
+  }
 
   // Attach real-time validation (CSP-safe, no inline handlers)
   elements.studentsBody.querySelectorAll('.score-input').forEach(input => {
@@ -149,6 +240,12 @@ function renderTable(className, subject, term, maxScore) {
 }
 
 elements.submitBtn?.addEventListener('click', async () => {
+  // Check due date again before submitting
+  if (isPastDueDate) {
+    showMessage('Submission deadline has passed. Only admins can edit results now.', 'error');
+    return;
+  }
+
   const maxScore = Number(elements.maxScoreInput.value);
   const inputs = document.querySelectorAll('.score-input');
 

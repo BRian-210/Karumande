@@ -1,16 +1,16 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Add Student — Admin</title>
+    <title>Edit Student — Admin</title>
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   </head>
   <body class="admin-page">
     <header class="topbar">
       <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
-      <h1><i class="fa-solid fa-user-plus"></i> Add Student</h1>
+      <h1><i class="fa-solid fa-pen-to-square"></i> Edit Student</h1>
       <div class="topbar-actions">
         <button class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;" id="logoutBtn">
           Logout
@@ -43,17 +43,20 @@
           <div class="card-header" style="margin-bottom:12px;">
             <h2 style="margin:0;">Student Details</h2>
             <a class="btn" style="background: var(--success); color: white; padding: 8px 14px;" href="/admin/students-list.html">
-              <i class="fa-solid fa-list"></i> View List
+              <i class="fa-solid fa-list"></i> Back to List
             </a>
           </div>
 
-          <div class="form-row">
-            <label>Name <span style="color:var(--danger);">*</span></label>
-            <input id="name" required />
+          <div id="loading" class="loading" style="padding:12px 0;display:none;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Loading student...
+          </div>
 
-            <label>Class <span style="color:var(--danger);">*</span></label>
-            <select id="classLevel" required>
-              <option value="">Select Class</option>
+          <div class="form-row">
+            <label>Name</label>
+            <input id="name" />
+
+            <label>Class</label>
+            <select id="classLevel">
               <option>PlayGroup</option>
               <option>PP1</option>
               <option>PP2</option>
@@ -71,12 +74,11 @@
             <label>Admission No</label>
             <input id="admissionNumber" />
 
-            <label>Date of Birth <span style="color:var(--danger);">*</span></label>
-            <input id="dob" type="date" required />
+            <label>DOB</label>
+            <input id="dob" type="date" />
 
-            <label>Gender <span style="color:var(--danger);">*</span></label>
-            <select id="gender" required>
-              <option value="">Select Gender</option>
+            <label>Gender</label>
+            <select id="gender">
               <option>Male</option>
               <option>Female</option>
               <option>Other</option>
@@ -85,7 +87,7 @@
             <label>Parent ID (optional)</label>
             <input id="parentId" placeholder="Parent user id" />
 
-            <button id="saveBtn" class="btn primary">Save Student</button>
+            <button id="saveBtn" class="btn primary">Save Changes</button>
           </div>
 
           <div id="msg" style="margin-top:12px"></div>
@@ -108,6 +110,8 @@
         }
       });
     </script>
-    <script src="/admin/add-student.js"></script>
+    <script src="/admin/edit-student.js"></script>
   </body>
 </html>
+
+

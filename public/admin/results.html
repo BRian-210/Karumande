@@ -4,19 +4,49 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Results Management | Admin</title>
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-graduation-cap"></i> Results Management</h1>
+    <div class="topbar-actions">
+      <div>Welcome, <strong id="adminName">Admin</strong></div>
+      <button class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;" onclick="logout()">Logout</button>
+    </div>
+  </header>
 
-<header>
-  <strong>Admin Panel</strong> | Results
-  <button id="logoutBtn">Logout</button>
-</header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html" class="active"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+        <div class="logout">
+          <a onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
 
-<div class="container">
+    <main class="content">
+      <div class="container">
 
-  <h2>Student Results</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <h2 style="margin:0;">Student Results</h2>
+    <a href="/admin/result-due.html" class="btn" style="background:var(--accent);color:white;">
+      <i class="fa-solid fa-calendar-days"></i> Manage Due Dates
+    </a>
+  </div>
 
   <!-- FILTERS -->
   <div class="filters">
@@ -70,9 +100,30 @@
     </table>
   </section> <!-- ✅ properly closed -->
 
-</div>
+      </div>
+    </main>
+  </div>
 
-<script src="/admin/results.js"></script>
+  <script>
+    // Auth protection
+    if (!localStorage.getItem('token') && !localStorage.getItem('adminToken')) {
+      window.location.href = '/admin/login.html';
+    }
+
+    function logout() {
+      if (confirm('Log out of Admin Panel?')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login.html';
+      }
+    }
+
+    // Mobile menu toggle
+    document.getElementById('mobileToggle')?.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+  </script>
+  <script src="/admin/results.js"></script>
 
 </body>
 </html>

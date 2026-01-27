@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Result | Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-edit"></i> Edit Student Result</h1>
+    <div class="topbar-actions">
+      <a href="/admin/results.html" class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;">
+        <i class="fa-solid fa-arrow-left"></i> Back to Results
+      </a>
+      <button class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html" class="active"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+        <div class="logout">
+          <a onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div id="loading" class="loading" style="text-align:center;padding:40px;">
+        <i class="fa-solid fa-spinner fa-spin"></i><br>Loading result data...
+      </div>
+
+      <div id="resultForm" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="studentName">Student Name</h2>
+            <p id="studentInfo" style="color:var(--muted);margin-top:8px;"></p>
+          </div>
+
+          <form id="editResultForm">
+            <div class="form-group" style="margin-bottom:24px;">
+              <label>Term</label>
+              <input type="text" id="term" readonly style="background:#f0f0f0;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom:24px;">
+              <label>Grade / Overall Grade (Optional)</label>
+              <input type="text" id="grade" placeholder="e.g., A, B+, C" />
+            </div>
+
+            <div class="form-group" style="margin-bottom:24px;">
+              <label>Comments (Optional)</label>
+              <textarea id="comments" rows="3" placeholder="General comments about the student's performance..."></textarea>
+            </div>
+
+            <h3 style="margin:32px 0 16px;color:var(--brand-strong);">
+              <i class="fa-solid fa-book"></i> Subject Scores
+            </h3>
+
+            <div id="subjectsContainer">
+              <!-- Subjects will be dynamically added here -->
+            </div>
+
+            <button type="button" id="addSubjectBtn" class="btn" style="background:var(--success);color:white;margin-bottom:24px;">
+              <i class="fa-solid fa-plus"></i> Add Subject
+            </button>
+
+            <div style="display:flex;gap:12px;margin-top:32px;">
+              <button type="submit" class="btn" style="background:var(--brand);color:white;flex:1;">
+                <i class="fa-solid fa-save"></i> Save Changes
+              </button>
+              <button type="button" onclick="window.close()" class="btn" style="background:var(--muted);color:white;">
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          <div id="message" style="margin-top:20px;display:none;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/admin/edit-result.js"></script>
+</body>
+</html>
+

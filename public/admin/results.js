@@ -1,8 +1,8 @@
 // /admin/results.js - Updated & Working Version (January 2026)
 
-const token = localStorage.getItem('token');
+const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
 if (!token) {
-  window.location.href = '/login.html';
+  window.location.href = '/admin/login.html';
 }
 
 // DOM Elements
@@ -47,7 +47,8 @@ elements.loadBtn?.addEventListener('click', fetchResults);
 elements.logoutBtn?.addEventListener('click', () => {
   if (confirm('Log out of Admin Panel?')) {
     localStorage.removeItem('token');
-    window.location.href = '/login.html';
+    localStorage.removeItem('adminToken');
+    window.location.href = '/admin/login.html';
   }
 });
 
@@ -65,7 +66,7 @@ async function fetchResults() {
   if (elements.resultsBody) elements.resultsBody.innerHTML = '';
 
   try {
-    const url = `/api/results?class=${encodeURIComponent(cls)}&term=${encodeURIComponent(term)}&year=2026`;
+    const url = `/api/results?classLevel=${encodeURIComponent(cls)}&term=${encodeURIComponent(term)}`;
     console.log('Fetching:', url);
 
     const res = await fetch(url, {

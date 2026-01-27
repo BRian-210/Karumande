@@ -9,7 +9,7 @@ const router = express.Router();
 
 const ResultDueDate = require('../models/ResultDueDate');
 
-// Batch submit results for a single subject for many students
+  // Batch submit results for a single subject for many students
 router.post(
   '/results-batch',
   requireAuth,
@@ -27,6 +27,45 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { term, subject, results, maxScore = 100 } = req.body;
+    
+    // Check due date for teachers (admins can always edit)
+    if (req.user.role === 'teacher') {
+      const ResultDueDate = require('../models/ResultDueDate');
+      const now = new Date();
+      
+      // Get first student to check class level
+      const firstStudent = await Student.findById(results[0]?.studentId).lean();
+      if (!firstStudent) {
+        return res.status(400).json({ message: 'Invalid student ID' });
+      }
+      
+      // Check for class-level due date
+      const classDueDate = await ResultDueDate.findOne({
+        classLevel: firstStudent.classLevel,
+        term,
+        subject: null
+      });
+      
+      // Check for subject-specific due date
+      const subjectDueDate = await ResultDueDate.findOne({
+        classLevel: firstStudent.classLevel,
+        term,
+        subject: subject
+      });
+      
+      if (classDueDate && new Date(classDueDate.dueDate) < now) {
+        return res.status(403).json({ 
+          message: `Submission deadline has passed for ${firstStudent.classLevel} - ${term}. Only admins can edit results now.` 
+        });
+      }
+      
+      if (subjectDueDate && new Date(subjectDueDate.dueDate) < now) {
+        return res.status(403).json({ 
+          message: `Submission deadline has passed for ${subject} in ${firstStudent.classLevel} - ${term}. Only admins can edit results now.` 
+        });
+      }
+    }
+    
     const saved = [];
     const failed = [];
 

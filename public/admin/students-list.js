@@ -78,7 +78,11 @@ function renderStudents(students) {
           <td>${s.name}</td>
           <td>${s.classLevel}</td>
           <td>${s.parent?.name || 'N/A'}</td>
-          <td><button class="view-btn" data-id="${s._id}">👁️ View</button></td>
+          <td style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="view-btn" data-id="${s._id}">View</button>
+            <a class="edit-btn" data-id="${s._id}" href="/admin/edit-student.html?id=${encodeURIComponent(s._id)}">Edit</a>
+            <button class="delete-btn" data-id="${s._id}">Delete</button>
+          </td>
         </tr>
       `;
     });
@@ -91,6 +95,25 @@ function renderStudents(students) {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       window.open(`/admin/student-profile.html?id=${id}`, '_blank');
+    });
+  });
+
+  // Delete (soft-delete) student
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!confirm('Delete this student? (This will remove them from active lists)')) return;
+      try {
+        const res = await fetch(`/api/students/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to delete student');
+        await loadStudents(elements.search?.value?.trim() || '');
+      } catch (err) {
+        alert(err.message);
+      }
     });
   });
 }
