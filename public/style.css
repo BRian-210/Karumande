@@ -957,39 +957,32 @@ textarea {
 
 /* Admin Page Overrides */
 /* admin dashboard styles */
-/* Mobile sidebar - hidden by default */
+/* Ensure admin pages don't create horizontal overflow on mobile */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Admin sidebar: visible on desktop, slide-in on mobile (uses `.open`) */
 .sidebar {
-  transform: translateX(-100%);
-  transition: transform 0.3s ease-in-out;
   position: fixed;
   top: 0;
   left: 0;
   height: 100%;
-  width: 280px;           /* or whatever width you want */
+  width: var(--sidebar-width, 260px);
   z-index: 1000;
-  background: #fff;       /* or your sidebar bg */
+  transform: translateX(0); /* IMPORTANT: visible by default */
+  transition: transform 0.3s ease-in-out;
 }
 
-/* Visible when active */
-.sidebar.active {
-  transform: translateX(0);
+@media (max-width: 992px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
 }
-
-/* Optional: darken background or prevent scroll when open */
-body.sidebar-open {
-  overflow: hidden;
-}
-
-/* Optional: overlay (backdrop) when sidebar is open */
-body.sidebar-open::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 999;
-}
-
-/* Desktop – always visible */
 
     :root {
       --brand: #0d47a1; --brand-strong: #083070; --accent: #f4b400;

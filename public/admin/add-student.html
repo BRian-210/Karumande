@@ -5,54 +5,107 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Add Student — Admin</title>
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   </head>
   <body class="admin-page">
-    <main class="container">
-      <h1>Add Student</h1>
-      <section class="card">
-        <div class="form-row">
-          <label>Name</label>
-          <input id="name" />
+    <header class="topbar">
+      <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+      <h1><i class="fa-solid fa-user-plus"></i> Add Student</h1>
+      <div class="topbar-actions">
+        <button class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;" id="logoutBtn">
+          Logout
+        </button>
+      </div>
+    </header>
 
-          <label>Class</label>
-          <select id="classLevel">
-            <option>PlayGroup</option>
-            <option>PP1</option>
-            <option>PP2</option>
-            <option>Grade 1</option>
-            <option>Grade 2</option>
-            <option>Grade 3</option>
-            <option>Grade 4</option>
-            <option>Grade 5</option>
-            <option>Grade 6</option>
-            <option>Grade 7</option>
-            <option>Grade 8</option>
-            <option>Grade 9</option>
-          </select>
-
-          <label>Admission No</label>
-          <input id="admissionNumber" />
-
-          <label>DOB</label>
-          <input id="dob" type="date" />
-
-          <label>Gender</label>
-          <select id="gender">
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
-          </select>
-
-          <label>Parent ID (optional)</label>
-          <input id="parentId" placeholder="Parent user id" />
-
-          <button id="saveBtn" class="btn primary">Save Student</button>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+          <h3>Karumande Link School</h3>
+          <p>Administration Panel</p>
         </div>
-      </section>
+        <nav>
+          <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+          <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+          <a href="/admin/students.html" class="active"><i class="fa-solid fa-users"></i> Students</a>
+          <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+          <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+          <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+          <div class="logout">
+            <a id="sidebarLogout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+          </div>
+        </nav>
+      </aside>
 
-      <div id="msg" style="margin-top:12px"></div>
-    </main>
+      <main class="content">
+        <div class="card">
+          <div class="card-header" style="margin-bottom:12px;">
+            <h2 style="margin:0;">Student Details</h2>
+            <a class="btn" style="background: var(--success); color: white; padding: 8px 14px;" href="/admin/students-list.html">
+              <i class="fa-solid fa-list"></i> View List
+            </a>
+          </div>
 
+          <div class="form-row">
+            <label>Name</label>
+            <input id="name" />
+
+            <label>Class</label>
+            <select id="classLevel">
+              <option>PlayGroup</option>
+              <option>PP1</option>
+              <option>PP2</option>
+              <option>Grade 1</option>
+              <option>Grade 2</option>
+              <option>Grade 3</option>
+              <option>Grade 4</option>
+              <option>Grade 5</option>
+              <option>Grade 6</option>
+              <option>Grade 7</option>
+              <option>Grade 8</option>
+              <option>Grade 9</option>
+            </select>
+
+            <label>Admission No</label>
+            <input id="admissionNumber" />
+
+            <label>DOB</label>
+            <input id="dob" type="date" />
+
+            <label>Gender</label>
+            <select id="gender">
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+
+            <label>Parent ID (optional)</label>
+            <input id="parentId" placeholder="Parent user id" />
+
+            <button id="saveBtn" class="btn primary">Save Student</button>
+          </div>
+
+          <div id="msg" style="margin-top:12px"></div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      document.getElementById('mobileToggle')?.addEventListener('click', () => {
+        document.getElementById('sidebar')?.classList.toggle('open');
+      });
+      document.getElementById('sidebarLogout')?.addEventListener('click', () => {
+        document.getElementById('logoutBtn')?.click();
+      });
+      document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        if (confirm('Log out of admin panel?')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('adminToken'); // backwards-compat
+          window.location.href = '/admin/login.html';
+        }
+      });
+    </script>
     <script src="/admin/add-student.js"></script>
   </body>
 </html>

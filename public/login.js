@@ -50,7 +50,7 @@
 
   async function validateTokenAndRedirect(token) {
     try {
-      const res = await fetch(`${API_BASE}/auth/verify`, {
+      const res = await fetch(`${API_BASE}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -107,10 +107,16 @@
     if (els.error) els.error.style.display = 'none';
 
     try {
+      // Determine if identifier is an email or admission number
+      const isEmail = identifier.includes('@');
+      const loginBody = isEmail 
+        ? { email: identifier, password }
+        : { admissionNo: identifier, password };
+
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password })
+        body: JSON.stringify(loginBody)
       });
 
       const data = await response.json();

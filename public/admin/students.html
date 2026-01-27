@@ -115,8 +115,8 @@
   <script>
     const API_BASE = ''; // e.g., 'https://api.karumande.ac.ke' or leave empty for same origin
 
-    // Auth protection
-    if (!localStorage.getItem('adminToken')) {
+    // Auth protection (admin login stores `token`)
+    if (!localStorage.getItem('token')) {
       window.location.href = '/admin/login.html';
     }
 
@@ -125,7 +125,7 @@
 
     async function loadStudentStats() {
       try {
-        const token = localStorage.getItem('adminToken');
+        const token = localStorage.getItem('token');
 
         // Fetch total counts and gender breakdown
         const summaryRes = await fetch(`${API_BASE}/api/students/summary`, {
@@ -198,7 +198,8 @@
 
     function logout() {
       if (confirm('Log out of admin panel?')) {
-        localStorage.removeItem('adminToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken'); // backwards-compat
         localStorage.removeItem('adminName');
         window.location.href = '/admin/login.html';
       }

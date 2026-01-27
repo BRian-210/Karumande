@@ -7,42 +7,83 @@
   <link rel="stylesheet" href="/style.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
-<body>
-<header>
-  <strong>Admin Panel</strong> | Students
-  <button id="logoutBtn">Logout</button>
-</header>
+<body class="admin-page">
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-users"></i> Students</h1>
+    <div class="topbar-actions">
+      <button class="btn" style="background:rgba(255,255,255,0.2);padding:8px 16px;" id="logoutBtn">
+        Logout
+      </button>
+    </div>
+  </header>
 
-<div class="container">
-  <h2>All Students</h2>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html" class="active"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/teachers/dashboard.html"><i class="fa-solid fa-chalkboard-teacher"></i> Teachers</a>
+        <div class="logout">
+          <a id="sidebarLogout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
 
-  <!-- Search/filter -->
-  <div class="filters">
-    <input type="text" id="search" placeholder="Search by name or admission number"/>
-    <button id="searchBtn">Search</button>
+    <main class="content">
+      <h1 class="page-title">All Students</h1>
+
+      <div class="card">
+        <div class="filters" style="margin-bottom:12px;">
+          <input type="text" id="search" placeholder="Search by name or admission number"/>
+          <button id="searchBtn" class="btn btn-primary" style="padding:10px 16px;">Search</button>
+          <a class="btn btn-primary" style="padding:10px 16px; background: var(--success);" href="/admin/add-student.html">
+            <i class="fa-solid fa-user-plus"></i> Add Student
+          </a>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Adm No</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Parent</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="studentsBody">
+              <tr>
+                <td colspan="5" style="text-align:center; padding:2rem; color:#666;">
+                  Loading students...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <!-- Students Table -->
-  <table>
-    <thead>
-      <tr>
-        <th>Adm No</th>
-        <th>Name</th>
-        <th>Class</th>
-        <th>Parent</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="studentsBody">
-      <tr>
-        <td colspan="5" style="text-align:center; padding:2rem; color:#666;">
-          Loading students...
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<script src="/admin/students-list.js"></script>
+  <script>
+    // Mobile menu toggle
+    document.getElementById('mobileToggle')?.addEventListener('click', () => {
+      document.getElementById('sidebar')?.classList.toggle('open');
+    });
+    // Sidebar logout mirrors top logout
+    document.getElementById('sidebarLogout')?.addEventListener('click', () => {
+      document.getElementById('logoutBtn')?.click();
+    });
+  </script>
+  <script src="/admin/students-list.js"></script>
 </body>
 </html>

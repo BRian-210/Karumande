@@ -142,7 +142,7 @@ function renderResultsTable(results) {
 
   html += `
   <tr style="background:#e8f5e9; font-weight:bold;">
-    <td colspan="6">DEBUG: ${results.length} students loaded - table should show below</td>
+    <td colspan="6">: ${results.length} students loaded - table should show below</td>
   </tr>
 `;
 
