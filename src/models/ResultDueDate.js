@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const resultDueDateSchema = new mongoose.Schema({
-  classLevel: { type: String, required: true, trim: true },
+  classLevel: { type: String, trim: true }, // Optional, if not set, applies to all classes
   term: { type: String, required: true, trim: true },
   subject: { type: String, trim: true },
   dueDate: { type: Date, required: true },

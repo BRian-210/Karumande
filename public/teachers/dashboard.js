@@ -35,8 +35,13 @@ const elements = {
   headerRow: document.getElementById('headerRow'),
   outOfRow: document.getElementById('outOfRow'),
   studentsBody: document.getElementById('studentsBody'),
-  message: document.getElementById('message')
+  message: document.getElementById('message'),
+  notificationsSection: document.getElementById('notificationsSection'),
+  notificationsList: document.getElementById('notificationsList')
 };
+
+// Load notifications on page load
+loadNotifications();
 
 // Logout
 elements.logoutBtn?.addEventListener('click', () => {
@@ -50,6 +55,74 @@ let currentStudents = [];
 let isPastDueDate = false;
 let lockedSubjects = new Set(); // subject.name locked for teachers after subject-specific due date
 const CURRENT_YEAR = 2026;
+
+async function loadNotifications() {
+  try {
+    const res = await fetch('/api/teachers/result-due', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('token');
+        window.location.href = '/teachers/login.html';
+        return;
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const dueDates = await res.json();
+    const now = new Date();
+    const upcoming = dueDates.filter(dd => new Date(dd.dueDate) > now);
+
+    if (upcoming.length === 0) {
+      elements.notificationsSection.style.display = 'none';
+      return;
+    }
+
+    // Sort by due date
+    upcoming.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    const notificationsHtml = upcoming.slice(0, 5).map(dd => {
+      const dueDate = new Date(dd.dueDate);
+      const daysUntil = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      const isUrgent = daysUntil <= 3;
+      const isOverdue = daysUntil < 0;
+
+      let className = 'notification-item';
+      if (isOverdue) className += ' danger';
+      else if (isUrgent) className += ' warning';
+
+      const title = dd.subject 
+        ? `Due Date for ${dd.subject}` 
+        : `Class ${dd.classLevel || 'All Classes'} Results Due`;
+      
+      const description = dd.classLevel 
+        ? `Submit ${dd.classLevel} results by ${dueDate.toLocaleDateString()}`
+        : `Submit all class results by ${dueDate.toLocaleDateString()}`;
+
+      return `
+        <div class="${className}">
+          <div class="notification-content">
+            <h4>${title}</h4>
+            <p>${description}</p>
+          </div>
+          <div class="notification-date">
+            ${isOverdue ? 'Overdue' : daysUntil === 0 ? 'Today' : `${daysUntil} day${daysUntil === 1 ? '' : 's'}`}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    elements.notificationsList.innerHTML = notificationsHtml;
+    elements.notificationsSection.style.display = 'block';
+
+  } catch (err) {
+    console.error('Load notifications error:', err);
+    // Don't show error message for notifications, just hide the section
+    elements.notificationsSection.style.display = 'none';
+  }
+}
 
 function showMessage(text, type = 'info') {
   if (!elements.message) return;
@@ -122,36 +195,48 @@ elements.loadBtn?.addEventListener('click', async () => {
   showMessage('Loading learners...', 'loading');
 
   try {
-    // 0) Check due date first (class-level lock + subject locks)
-    const dueDateQuery = new URLSearchParams({
-      classLevel: cls,
-      term: term
-    }).toString();
-    
-    const dueDateRes = await fetch(`/api/teachers/result-due?${dueDateQuery}`, {
+    // 0) Check due date first (global + class-level lock + subject locks)
+    const dueDateRes = await fetch('/api/teachers/result-due', {
       headers: { Authorization: `Bearer ${token}` }
     });
     
     if (dueDateRes.ok) {
-      const dueDates = await dueDateRes.json();
+      const allDueDates = await dueDateRes.json();
       const now = new Date();
       
-      // Class-level due date (locks everything for teachers)
-      const classDueDate = dueDates.find(dd => !dd.subject);
-      if (classDueDate && new Date(classDueDate.dueDate) < now) {
+      // Filter due dates for this class and term, plus global ones
+      const relevantDueDates = allDueDates.filter(dd => 
+        (dd.term === term) && 
+        (!dd.classLevel || dd.classLevel === cls)
+      );
+      
+      // Global due date (locks everything for teachers)
+      const globalDueDate = relevantDueDates.find(dd => !dd.classLevel && !dd.subject);
+      if (globalDueDate && new Date(globalDueDate.dueDate) < now) {
         isPastDueDate = true;
         lockedSubjects = new Set(SUBJECTS.map(s => s.name));
         showMessage(
-          `⚠️ Submission deadline has passed (${new Date(classDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
+          `⚠️ Submission deadline has passed for all classes (${new Date(globalDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
           'error'
         );
       } else {
-        isPastDueDate = false;
-        // Subject-specific locks (optional)
-        lockedSubjects = new Set();
-        dueDates
-          .filter(dd => dd.subject && new Date(dd.dueDate) < now)
-          .forEach(dd => lockedSubjects.add(dd.subject));
+        // Class-level due date (locks everything for teachers)
+        const classDueDate = relevantDueDates.find(dd => dd.classLevel === cls && !dd.subject);
+        if (classDueDate && new Date(classDueDate.dueDate) < now) {
+          isPastDueDate = true;
+          lockedSubjects = new Set(SUBJECTS.map(s => s.name));
+          showMessage(
+            `⚠️ Submission deadline has passed for ${cls} (${new Date(classDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
+            'error'
+          );
+        } else {
+          isPastDueDate = false;
+          // Subject-specific locks (global or class-specific)
+          lockedSubjects = new Set();
+          relevantDueDates
+            .filter(dd => dd.subject && new Date(dd.dueDate) < now)
+            .forEach(dd => lockedSubjects.add(dd.subject));
+        }
       }
     }
 

@@ -39,6 +39,19 @@ router.post(
         return res.status(400).json({ message: 'Invalid student ID' });
       }
       
+      // Check for global due dates (applies to all classes)
+      const globalDueDate = await ResultDueDate.findOne({
+        classLevel: null,
+        term,
+        subject: null
+      });
+      
+      const globalSubjectDueDate = await ResultDueDate.findOne({
+        classLevel: null,
+        term,
+        subject: subject
+      });
+      
       // Check for class-level due date
       const classDueDate = await ResultDueDate.findOne({
         classLevel: firstStudent.classLevel,
@@ -53,9 +66,21 @@ router.post(
         subject: subject
       });
       
+      if (globalDueDate && new Date(globalDueDate.dueDate) < now) {
+        return res.status(403).json({ 
+          message: `Submission deadline has passed for all classes - ${term}. Only admins can edit results now.` 
+        });
+      }
+      
       if (classDueDate && new Date(classDueDate.dueDate) < now) {
         return res.status(403).json({ 
           message: `Submission deadline has passed for ${firstStudent.classLevel} - ${term}. Only admins can edit results now.` 
+        });
+      }
+      
+      if (globalSubjectDueDate && new Date(globalSubjectDueDate.dueDate) < now) {
+        return res.status(403).json({ 
+          message: `Submission deadline has passed for ${subject} in all classes - ${term}. Only admins can edit results now.` 
         });
       }
       
@@ -130,21 +155,40 @@ router.post(
 
     // Enforce due dates for teachers (admins can always edit)
     if (req.user.role === 'teacher') {
+      // Check for global due dates (applies to all classes)
+      const globalDueDate = await ResultDueDate.findOne({ classLevel: null, term, subject: null }).lean();
+      if (globalDueDate && new Date(globalDueDate.dueDate) < now) {
+        return res.status(403).json({
+          message: `Submission deadline has passed for all classes - ${term}. Only admins can edit results now.`
+        });
+      }
+
+      // Check for class-specific due dates
       const classDueDate = await ResultDueDate.findOne({ classLevel, term, subject: null }).lean();
       if (classDueDate && new Date(classDueDate.dueDate) < now) {
         return res.status(403).json({
           message: `Submission deadline has passed for ${classLevel} - ${term}. Only admins can edit results now.`
         });
       }
-      // If subject-specific due dates exist and are past, block saving those subjects
+
+      // Check for global subject-specific due dates
       const allSubjects = new Set();
       results.forEach(r => (r.subjects || []).forEach(s => allSubjects.add(s.name)));
-      const subjectDueDates = await ResultDueDate.find({
+      const globalSubjectDueDates = await ResultDueDate.find({
+        classLevel: null,
+        term,
+        subject: { $in: Array.from(allSubjects) }
+      }).lean();
+
+      // Check for class-specific subject due dates
+      const classSubjectDueDates = await ResultDueDate.find({
         classLevel,
         term,
         subject: { $in: Array.from(allSubjects) }
       }).lean();
-      const locked = subjectDueDates.filter(dd => new Date(dd.dueDate) < now).map(dd => dd.subject);
+
+      const allSubjectDueDates = [...globalSubjectDueDates, ...classSubjectDueDates];
+      const locked = allSubjectDueDates.filter(dd => new Date(dd.dueDate) < now).map(dd => dd.subject);
       if (locked.length > 0) {
         return res.status(403).json({
           message: `Submission deadline has passed for subject(s): ${locked.join(', ')}. Only admins can edit these now.`
@@ -204,7 +248,7 @@ router.post(
     requireAuth,
     requireRole('admin', 'teacher'),
     [
-      body('classLevel').isString().notEmpty(),
+      body('classLevel').optional().isString().trim(),
       body('term').isString().notEmpty(),
       body('dueDate').isISO8601().toDate(),
       body('subject').optional().isString().trim()
@@ -215,10 +259,12 @@ router.post(
 
       const { classLevel, term, subject, dueDate } = req.body;
       try {
-        const filter = { classLevel, term };
+        const filter = { term };
+        if (classLevel) filter.classLevel = classLevel;
         if (subject) filter.subject = subject;
 
-        const update = { classLevel, term, subject: subject || null, dueDate, createdBy: req.user.sub };
+        const update = { term, subject: subject || null, dueDate, createdBy: req.user.sub };
+        if (classLevel) update.classLevel = classLevel;
         const doc = await ResultDueDate.findOneAndUpdate(filter, update, { upsert: true, new: true, setDefaultsOnInsert: true });
         return res.json({ message: 'Due date saved', data: doc });
       } catch (err) {
@@ -237,6 +283,17 @@ router.post(
     if (subject) q.subject = subject;
     const items = await ResultDueDate.find(q).lean();
     return res.json(items);
+  });
+
+  // Delete a due date
+  router.delete('/result-due/:id', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
+    try {
+      const item = await ResultDueDate.findByIdAndDelete(req.params.id);
+      if (!item) return res.status(404).json({ message: 'Due date not found' });
+      return res.json({ message: 'Due date deleted' });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
   });
 
 module.exports = router;
