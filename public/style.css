@@ -25,6 +25,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -33,6 +34,7 @@ body {
   color: var(--ink);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 a {
@@ -807,6 +809,7 @@ textarea {
 
 @media (max-width: 768px) {
   .header { padding: 80px 20px 100px; }
+  .nav-container { justify-content: flex-start; padding-left: 0; }
   .container { margin: -60px auto 80px; padding: 0 16px; }
   .form-card { padding: 40px 24px; }
   .form-grid { grid-template-columns: 1fr; gap: 24px; }
@@ -926,6 +929,7 @@ textarea {
     flex-direction: column;
     box-shadow: var(--shadow);
     min-width: 200px;
+    max-width: calc(100vw - 40px);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
