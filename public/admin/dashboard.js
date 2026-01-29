@@ -4,7 +4,7 @@
   const main     = document.querySelector('main.content');
 
   function toggleSidebar() {
-    const isActive = sidebar.classList.toggle('active');
+    const isActive = sidebar.classList.toggle('open');
     burger.setAttribute('aria-expanded', isActive);
     // Optional: prevent body scroll when sidebar is open on mobile
     document.body.classList.toggle('sidebar-open', isActive);
@@ -14,7 +14,7 @@
 
   // Close sidebar when clicking main content (good for mobile)
   main.addEventListener('click', () => {
-    if (sidebar.classList.contains('active')) {
+    if (sidebar.classList.contains('open')) {
       toggleSidebar();
     }
   });
