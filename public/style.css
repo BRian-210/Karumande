@@ -918,7 +918,7 @@ textarea {
   .nav-links {
     position: absolute;
     top: 100%;
-    right: 20px;
+    left: 20px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
