@@ -285,4 +285,91 @@ router.delete('/:id', requireAuth, async (req, res) => {
   return res.json({ message: 'Student deleted successfully', data: student });
 });
 
+// Parent dashboard data
+router.get('/dashboard/:studentId', requireAuth, async (req, res) => {
+  const { studentId } = req.params;
+
+  // Find the student
+  const student = await Student.findById(studentId).populate('parent', 'name email');
+  if (!student) {
+    return res.status(404).json({ message: 'Student not found' });
+  }
+
+  // Check if user is parent of this student or admin
+  if (req.user.role === 'parent' && String(student.parent._id) !== req.user.sub) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+
+  // Get student's results
+  const results = await require('../models/Result').find({ student: studentId })
+    .sort({ createdAt: -1 })
+    .limit(10);
+
+  // Get student's bills/fees
+  const bills = await require('../models/Bill').find({ student: studentId })
+    .sort({ createdAt: -1 });
+
+  // Get student's payments
+  const payments = await require('../models/Payment').find({ student: studentId })
+    .sort({ createdAt: -1 });
+
+  // Calculate fee balance
+  const totalBilled = bills.reduce((sum, bill) => sum + bill.amount, 0);
+  const totalPaid = payments
+    .filter(payment => payment.status === 'completed')
+    .reduce((sum, payment) => sum + payment.amount, 0);
+  const balance = totalBilled - totalPaid;
+
+  // Get fee structure for the student's class
+  const feeStructure = await require('../models/FeeStructure').findOne({ 
+    classLevel: student.classLevel 
+  });
+
+  return res.json({
+    student: {
+      id: student._id,
+      name: student.name,
+      classLevel: student.classLevel,
+      admissionNumber: student.admissionNumber,
+      parent: student.parent
+    },
+    results: results.map(result => ({
+      id: result._id,
+      term: result.term,
+      year: result.year,
+      subjects: result.subjects,
+      total: result.total,
+      grade: result.grade,
+      createdAt: result.createdAt
+    })),
+    fees: {
+      totalBilled,
+      totalPaid,
+      balance,
+      status: balance <= 0 ? 'paid' : balance < totalBilled * 0.5 ? 'partial' : 'unpaid',
+      bills: bills.map(bill => ({
+        id: bill._id,
+        description: bill.description,
+        amount: bill.amount,
+        term: bill.term,
+        createdAt: bill.createdAt
+      })),
+      payments: payments.map(payment => ({
+        id: payment._id,
+        amount: payment.amount,
+        phone: payment.phone,
+        status: payment.status,
+        createdAt: payment.createdAt
+      }))
+    },
+    feeStructure: feeStructure ? {
+      tuitionFee: feeStructure.tuitionFee,
+      meals: feeStructure.meals,
+      transport: feeStructure.transport,
+      otherFees: feeStructure.otherFees,
+      total: feeStructure.total
+    } : null
+  });
+});
+
 module.exports = router;

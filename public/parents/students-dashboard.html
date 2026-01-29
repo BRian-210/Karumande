@@ -32,26 +32,30 @@
     <div class="cards">
       <div class="card">
         <h3>Student Name</h3>
-        <p id="studentName">John Doe</p>
+        <p id="studentName">Loading...</p>
       </div>
       <div class="card">
         <h3>Class / Grade</h3>
-        <p id="studentClass">Grade 3</p>
+        <p id="studentClass">Loading...</p>
+      </div>
+      <div class="card">
+        <h3>Admission Number</h3>
+        <p id="studentAdmission">Loading...</p>
       </div>
       <div class="card">
         <h3>Fee Balance</h3>
-        <p id="feeBalance">KES 10,000</p>
+        <p id="feeBalance">Loading...</p>
       </div>
       <div class="card">
         <h3>Payment Status</h3>
-        <p><span class="badge partial" id="feeStatus">Partial</span></p>
+        <p><span class="badge partial" id="feeStatus">Loading</span></p>
       </div>
     </div>
 
     <!-- Fees Summary -->
     <h2><i class="fa-solid fa-money-bill-wave"></i> Fees Summary</h2>
     <div class="table-container">
-      <table>
+      <table id="feesTable">
         <thead>
           <tr>
             <th>Term</th>
@@ -61,54 +65,64 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="feesTableBody">
           <tr>
-            <td>Term 1, 2025</td>
-            <td>KES 30,000</td>
-            <td>KES 20,000</td>
-            <td>KES 10,000</td>
-            <td><span class="badge partial">Partial</span></td>
+            <td colspan="5" style="text-align: center;">Loading...</td>
           </tr>
         </tbody>
       </table>
     </div>
 
+    <!-- M-Pesa Payment Section -->
+    <div class="card" id="paymentSection" style="display: none;">
+      <h3><i class="fa-solid fa-mobile-screen-button"></i> Pay School Fees via M-Pesa</h3>
+      <div class="payment-form">
+        <div class="form-row">
+          <div>
+            <label for="paymentPhone">M-Pesa Phone Number</label>
+            <input type="tel" id="paymentPhone" placeholder="254712345678" required />
+          </div>
+          <div>
+            <label for="paymentAmount">Amount (KES)</label>
+            <input type="number" id="paymentAmount" placeholder="5000" min="1" required />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button id="payBtn" class="btn primary">
+            <i class="fa-solid fa-paper-plane"></i> Send STK Push
+          </button>
+        </div>
+      </div>
+      <div class="payment-info">
+        <h4>Payment Instructions:</h4>
+        <ul>
+          <li><strong>1. EQUITY Paybill:</strong> 676554<br>
+              Account: <em id="equityAccount">Loading...</em></li>
+          <li><strong>2. KCB Paybill:</strong> 522522<br>
+              Account: <em id="kcbAccount">Loading...</em></li>
+          <li><strong>3. FORTUNE Paybill:</strong> 852648<br>
+              Account: <em id="fortuneAccount">Loading...</em></li>
+        </ul>
+        <p><strong>Note:</strong> You can also pay manually using the paybill numbers above with your child's name and class as account reference.</p>
+      </div>
+    </div>
+
     <!-- Latest Results -->
     <h2><i class="fa-solid fa-chart-line"></i> Latest Exam Results</h2>
     <div class="table-container">
-      <table>
+      <table id="resultsTable">
         <thead>
           <tr>
+            <th>Term</th>
             <th>Subject</th>
             <th>Marks (/100)</th>
             <th>Grade</th>
             <th>Remarks</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="resultsTableBody">
           <tr>
-            <td>Mathematics</td>
-            <td>78</td>
-            <td>B+</td>
-            <td>Good progress</td>
-          </tr>
-          <tr>
-            <td>English</td>
-            <td>82</td>
-            <td>A-</td>
-            <td>Excellent!</td>
-          </tr>
-          <tr>
-            <td>Science</td>
-            <td>74</td>
-            <td>B</td>
-            <td>Keep practicing</td>
-          </tr>
-          <tr>
-            <td>Kiswahili</td>
-            <td>80</td>
-            <td>A-</td>
-            <td>Very good</td>
+            <td colspan="5" style="text-align: center;">Loading...</td>
           </tr>
         </tbody>
       </table>
@@ -116,18 +130,9 @@
 
     <!-- School Announcements -->
     <h2><i class="fa-solid fa-bullhorn"></i> School Announcements</h2>
-    <div class="announcements">
-      <div class="announcement">
-        <strong>School Reopening – Term 1 2026</strong>
-        <p>School reopens on <strong>January 8th, 2026</strong>. All students are expected to report on time. Ensure school fees are cleared before resumption.</p>
-      </div>
-      <div class="announcement">
-        <strong>Parents' Meeting</strong>
-        <p>A general parents meeting is scheduled for <strong>Friday, January 17th</strong> at 2:00 PM in the school hall. Attendance is highly encouraged.</p>
-      </div>
-      <div class="announcement">
-        <strong>Sports Day Coming Soon!</strong>
-        <p>Annual Sports & Culture Day will be held on <strong>February 14th</strong>. Students should prepare for track events, drama, and music.</p>
+    <div id="dashboardAnnouncementsContainer" class="announcements">
+      <div style="text-align: center; padding: 40px; color: var(--muted);">
+        <i class="fa-solid fa-hourglass-end"></i> Loading announcements...
       </div>
     </div>
 

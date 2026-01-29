@@ -24,6 +24,7 @@ const reportRoutes = require('./src/routes/reports');
 const admissionRoutes = require('./src/routes/admissions');
 const teachersRoutes = require('./src/routes/teachers');
 const settingsRoutes = require('./src/routes/settings');
+const galleryRoutes = require('./src/routes/gallery');
 
 // Middleware
 const { requireAuth, requireRole, enforceMustChangePassword } = require('./src/middleware/auth');
@@ -110,6 +111,8 @@ app.get('/api/health', (req, res) => {
 // ========================
 app.use('/api/auth', authRoutes);
 app.use('/api/admissions', admissionRoutes); // Public submission
+app.use('/api/announcements', announcementRoutes); // Public announcements view
+app.use('/api/gallery', galleryRoutes); // Public gallery view
 
 // ========================
 // Payment Webhook
@@ -146,12 +149,11 @@ app.post('/api/webhook/payments', express.raw({ type: 'application/json' }), asy
 // ========================
 // Protected Routes
 // ========================
-app.use('/api/students', authenticate, mustChangePassword, authorize('admin', 'teacher'), studentRoutes);
+app.use('/api/students', authenticate, mustChangePassword, authorize('admin', 'teacher', 'parent'), studentRoutes);
 app.use('/api/bills', authenticate, mustChangePassword, authorize('admin', 'accountant'), billRoutes);
 app.use('/api/payments', authenticate, mustChangePassword, authorize('admin', 'accountant', 'parent'), paymentRoutes);
 app.use('/api/fee-structures', authenticate, mustChangePassword, authorize('admin', 'accountant'), feeStructureRoutes);
 app.use('/api/results', authenticate, mustChangePassword, authorize('admin', 'teacher', 'student', 'parent'), resultRoutes);
-app.use('/api/announcements', authenticate, mustChangePassword, authorize('admin', 'teacher'), announcementRoutes);
 app.use('/api/content', authenticate, mustChangePassword, authorize('admin', 'teacher'), contentRoutes);
 app.use('/api/reports', authenticate, mustChangePassword, authorize('admin', 'accountant'), reportRoutes);
 app.use('/api/teachers', authenticate, mustChangePassword, authorize('admin', 'teacher'), teachersRoutes);

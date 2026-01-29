@@ -3,46 +3,107 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Announcements | Admin</title>
-  <link rel="stylesheet" href="/style.css"/>
+  <title>Announcements | Karumande Link School</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="/style.css"/>
 </head>
 <body>
-<header>
-  <strong>Admin Panel</strong> | Announcements
-  <button id="logoutBtn">Logout</button>
-</header>
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-bullhorn"></i> School Announcements</h1>
+    <div class="topbar-actions">
+      <div>Welcome, <strong>Admin</strong></div>
+      <button style="background:rgba(255,255,255,0.2);padding:8px 16px;border:none;border-radius:8px;cursor:pointer;" id="logoutBtn">Logout</button>
+    </div>
+  </header>
 
-<div class="container">
-  <h2>School Announcements</h2>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/admissions.html"><i class="fa-solid fa-user-plus"></i> Admissions</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+        <a href="/admin/announcements.html" class="active"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
+        <a href="/admin/result-due.html"><i class="fa-solid fa-calendar-check"></i> Result Due Dates</a>
+        <div class="logout">
+          <a onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+        </div>
+      </nav>
+    </aside>
 
-  <!-- Announcement Form -->
-  <form id="announcementForm">
-    <input type="text" id="title" placeholder="Title" required/>
-    <input type="text" id="message" placeholder="Message" required/>
-    <button type="submit">Publish</button>
-  </form>
+    <main class="content">
+      <div class="page-title">School Announcements</div>
+      <p class="page-subtitle">Create and manage announcements for parents, students, and staff</p>
 
-  <!-- Announcements List -->
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Message</th>
-        <th>Date</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="announcementsBody">
-      <tr>
-        <td colspan="4" style="text-align:center; padding:2rem; color:#666;">
-          
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+      <!-- Announcement Form -->
+      <div class="card">
+        <h2>Create New Announcement</h2>
+        <form id="announcementForm">
+          <div class="form-row">
+            <div>
+              <label for="title">Announcement Title *</label>
+              <input type="text" id="title" name="title" placeholder="e.g., School Reopening – Term 1 2026" required/>
+            </div>
+            <div>
+              <label for="audience">Audience *</label>
+              <select id="audience" name="audience" required>
+                <option value="public">Public (Everyone)</option>
+                <option value="parents">Parents Only</option>
+                <option value="students">Students Only</option>
+                <option value="staff">Staff Only</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="body">Announcement Message *</label>
+              <textarea id="body" name="body" placeholder="Write your announcement here..." rows="5" required></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">
+              <i class="fa-solid fa-paper-plane"></i> Publish Announcement
+            </button>
+          </div>
+        </form>
+      </div>
 
-<script src="/admin/announcements.js"></script>
+      <!-- Announcements List -->
+      <div class="card">
+        <h2><i class="fa-solid fa-list"></i> Recent Announcements</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Preview</th>
+                <th>Audience</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="announcementsBody">
+              <tr>
+                <td colspan="5" style="text-align:center; padding:2rem; color:#666;">
+                  <i class="fa-solid fa-hourglass-end"></i> Loading announcements...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/admin/icons-replace.js"></script>
+  <script src="/admin/announcements.js"></script>
 </body>
 </html>

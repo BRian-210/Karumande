@@ -106,6 +106,20 @@
       </div>
     </section>
 
+    <!-- Announcements -->
+    <section class="section tint" id="announcements" aria-labelledby="announcements-heading">
+      <div class="section-header">
+        <p class="eyebrow">Latest News</p>
+        <h2 id="announcements-heading">School Announcements</h2>
+        <p class="lede">Stay updated with important school news and events.</p>
+      </div>
+      <div id="announcementsContainer" class="announcements">
+        <div style="text-align: center; padding: 40px; color: var(--muted);">
+          <i class="fa-solid fa-hourglass-end"></i> Loading announcements...
+        </div>
+      </div>
+    </section>
+
     <!-- Academics -->
     <section class="section" id="academics" aria-labelledby="academics-heading">
       <div class="section-header">
@@ -189,39 +203,42 @@
       <div class="section-header">
         <p class="eyebrow">Gallery</p>
         <h2 id="gallery-heading">Life at Karumande Link School</h2>
+        <button id="galleryAdminBtn" class="btn outline" style="display: none; margin-top: 16px;">
+          <i class="fa-solid fa-plus"></i> Add Photo
+        </button>
       </div>
-      <div class="gallery-grid">
 
-<grok-card data-id="d3531a" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
+      <!-- Admin Add Photo Form -->
+      <div id="galleryFormContainer" style="display: none; margin-bottom: 32px;">
+        <div class="card">
+          <h3>Add Gallery Photo</h3>
+          <div class="form-row">
+            <div>
+              <label for="galleryImageUrl">Image URL</label>
+              <input type="text" id="galleryImageUrl" placeholder="https://example.com/photo.jpg" required />
+            </div>
+            <div>
+              <label for="galleryImageTitle">Title (optional)</label>
+              <input type="text" id="galleryImageTitle" placeholder="Photo title" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="galleryImageDesc">Description (optional)</label>
+              <textarea id="galleryImageDesc" placeholder="Photo description" rows="3"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="galleryFormSubmit" class="btn primary">Add to Gallery</button>
+            <button id="galleryFormCancel" class="btn outline">Cancel</button>
+          </div>
+        </div>
+      </div>
 
-
-
-<grok-card data-id="3c9cd6" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="50a143" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="0a88d4" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="77b50c" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="a9fe3b" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="63aa33" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
-
-
-<grok-card data-id="bd41bc" data-type="image_card"  data-arg-size="LARGE" ></grok-card>
-
+      <div id="galleryGrid" class="gallery-grid">
+        <div style="text-align: center; padding: 40px; color: var(--muted); grid-column: 1 / -1;">
+          <i class="fa-solid fa-hourglass-end"></i> Loading gallery...
+        </div>
       </div>
     </section>
 

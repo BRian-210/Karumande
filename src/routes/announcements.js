@@ -77,5 +77,16 @@ router.post(
   }
 );
 
+// Allow admins to permanently delete an announcement
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const item = await Announcement.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Announcement not found' });
+    return res.json({ message: 'Announcement deleted' });
+  } catch (err) {
+    console.error('Error deleting announcement', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 module.exports = router;
 
