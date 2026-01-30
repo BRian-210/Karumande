@@ -92,22 +92,6 @@
         </div>
       </main>
     </div>
-
-    <script>
-      document.getElementById('mobileToggle')?.addEventListener('click', () => {
-        document.getElementById('sidebar')?.classList.toggle('open');
-      });
-      document.getElementById('sidebarLogout')?.addEventListener('click', () => {
-        document.getElementById('logoutBtn')?.click();
-      });
-      document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        if (confirm('Log out of admin panel?')) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('adminToken'); // backwards-compat
-          window.location.href = '/admin/login.html';
-        }
-      });
-    </script>
     <script src="/admin/add-student.js"></script>
   </body>
 </html>

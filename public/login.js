@@ -73,8 +73,8 @@
     const roleLower = (role || '').toLowerCase();
 
     const allowed = {
-      'student': '/parents/students-dashboard.html',
-      'parent':  '/parents/students-dashboard.html'
+      'student': '/change-password.html',
+      'parent':  '/change-password.html'
     };
 
     const target = allowed[roleLower];
