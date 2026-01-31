@@ -85,11 +85,11 @@ function updateStudentInfo(data) {
   document.getElementById('studentAdmission').textContent = data.student.admissionNumber;
 
   // Update fee balance card
-  const balance = data.fees.balance;
+  const balance = data.fees.summary?.balance || 0;
   document.getElementById('feeBalance').textContent = `KES ${balance.toLocaleString()}`;
 
   const statusElement = document.getElementById('feeStatus');
-  const status = data.fees.status;
+  const status = data.fees.summary?.status || 'unknown';
   statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
   statusElement.className = `badge ${status}`;
 }
@@ -97,25 +97,25 @@ function updateStudentInfo(data) {
 function updateFeesTable(fees) {
   const tbody = document.getElementById('feesTableBody');
 
-  if (!fees.bills || fees.bills.length === 0) {
+  if (!fees || !fees.recentBills || fees.recentBills.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No fee records found</td></tr>';
     return;
   }
 
   // Group bills by term
   const termGroups = {};
-  fees.bills.forEach(bill => {
+  fees.recentBills.forEach(bill => {
     if (!termGroups[bill.term]) {
       termGroups[bill.term] = { total: 0, bills: [] };
     }
-    termGroups[bill.term].total += bill.amount;
+    termGroups[bill.term].total += bill.amount || 0;
     termGroups[bill.term].bills.push(bill);
   });
 
   const rows = Object.entries(termGroups).map(([term, data]) => {
-    const paidForTerm = fees.payments
+    const paidForTerm = (fees.recentPayments || [])
       .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     const balance = data.total - paidForTerm;
     const status = balance <= 0 ? 'paid' : balance < data.total * 0.5 ? 'partial' : 'unpaid';
