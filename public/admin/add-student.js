@@ -1,5 +1,5 @@
 // =============================================
-// admin/add-student.js  (or wherever this lives)
+// admin/add-student.js
 // =============================================
 
 const elements = {

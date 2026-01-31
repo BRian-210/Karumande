@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      sparse: true, // Allows multiple nulls, enforces uniqueness when set
+      sparse: true, // allows multiple nulls, enforces uniqueness when set
       match: [/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number (E.164 format)'],
     },
 
@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: {
       type: String,
       required: true,
+      select: false, // intentionally excluded from default queries
     },
 
     // Role & Permissions
@@ -57,30 +58,33 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    // Force the user to change temporary password on first login
     mustChangePassword: {
       type: Boolean,
       default: false,
     },
     lastLoginAt: Date,
 
+    // Security extras
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockedUntil: Date,
+
     // Optional: Profile photo
     profilePhoto: String,
   },
-  {
-    timestamps: true, // createdAt, updatedAt
-  }
+  { timestamps: true }
 );
 
 // ========================
 // Indexes for Performance
-// ========================
-// Indexes: keep only non-duplicative indexes
+// ======================== 
 userSchema.index({ role: 1 });
 userSchema.index({ children: 1 });
 
 // ========================
-// Virtual: Hide sensitive fields
+// Virtuals & JSON transformation
 // ========================
 userSchema.virtual('id').get(function () {
   return this._id.toHexString();
@@ -92,20 +96,37 @@ userSchema.set('toJSON', {
     delete ret.passwordHash;
     delete ret.passwordResetToken;
     delete ret.passwordResetExpires;
+    delete ret.failedLoginAttempts;
+    delete ret.lockedUntil;
     delete ret.__v;
     return ret;
   },
 });
 
 // ========================
-// Method: Compare Password
+// Instance Method: Compare Password
 // ========================
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
 // ========================
-// Pre-save: Hash Password
+// Static Method: Find user + validate password in one step
+// ========================
+userSchema.statics.findAndValidate = async function (query, password) {
+  // query example: { email: "user@example.com" } or { admissionNumber: "ST12345" }
+  const user = await this.findOne(query).select('+passwordHash');
+
+  if (!user) {
+    return null;
+  }
+
+  const isValid = await user.comparePassword(password);
+  return isValid ? user : null;
+};
+
+// ========================
+// Pre-save: Hash password only when modified
 // ========================
 userSchema.pre('save', async function (next) {
   if (this.isModified('passwordHash')) {

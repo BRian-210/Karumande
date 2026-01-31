@@ -145,7 +145,8 @@ router.post('/login', loginValidation, async (req, res) => {
       return res.status(401).json({ message: 'Invalid admission number or password' });
     }
 
-    user = await User.findById(student.parent);
+    user = await User.findById(student.parent).select('+passwordHash');
+
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid admission number or password' });
     }
@@ -170,7 +171,8 @@ router.post('/login', loginValidation, async (req, res) => {
       console.error('Audit log error:', err.message);
     }
   } else {
-    user = await User.findOne({ email: email.toLowerCase() });
+    user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
+
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -236,7 +238,9 @@ router.post(
 
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user.id);
+    // We need the password hash → include it explicitly
+    const user = await User.findById(req.user.id).select('+passwordHash');
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -246,7 +250,7 @@ router.post(
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
-    user.passwordHash = newPassword;
+    user.passwordHash = newPassword;           // pre-save hook will hash it
     user.mustChangePassword = false;
     await user.save();
 
