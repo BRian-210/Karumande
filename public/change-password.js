@@ -87,7 +87,7 @@ form.addEventListener('submit', async e => {
       document.getElementById('confirmPassword').value = '';
 
       setTimeout(() => {
-        window.location.href = '/parents/students-dashboard.html';
+        window.location.href = '/student-dashboard.html';
       }, 1800);
     } else {
       // Handle common auth errors more clearly
