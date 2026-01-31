@@ -20,7 +20,7 @@
       <div class="header-title">
         <i class="fa-solid fa-user-graduate"></i> Parent / Student Portal
       </div>
-      <button class="logout-btn" onclick="logout()">
+      <button class="logout-btn" onclick="logout()" aria-label="Log out">
         <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
       </button>
     </div>
@@ -28,115 +28,133 @@
 
   <div class="container">
 
+    <!-- Child Selector (shown if multiple children) -->
+    <div class="child-selector" id="childSelector" style="display: none; margin-bottom: 1.5rem;">
+      <label for="childSelect">Viewing profile for:</label>
+      <select id="childSelect" aria-describedby="childHelp">
+        <option value="">Select child...</option>
+      </select>
+      <small id="childHelp" class="form-text">Switch between your children</small>
+    </div>
+
     <!-- Student Summary Cards -->
-    <div class="cards">
+    <div class="cards" id="summaryCards">
       <div class="card">
         <h3>Student Name</h3>
-        <p id="studentName">Loading...</p>
+        <p id="studentName">—</p>
       </div>
       <div class="card">
         <h3>Class / Grade</h3>
-        <p id="studentClass">Loading...</p>
+        <p id="studentClass">—</p>
       </div>
       <div class="card">
         <h3>Admission Number</h3>
-        <p id="studentAdmission">Loading...</p>
+        <p id="studentAdmission">—</p>
       </div>
       <div class="card">
         <h3>Fee Balance</h3>
-        <p id="feeBalance">Loading...</p>
+        <p id="feeBalance">KES —</p>
       </div>
       <div class="card">
         <h3>Payment Status</h3>
-        <p><span class="badge partial" id="feeStatus">Loading</span></p>
+        <p><span class="badge unknown" id="feeStatus">—</span></p>
       </div>
     </div>
 
     <!-- Fees Summary -->
-    <h2><i class="fa-solid fa-money-bill-wave"></i> Fees Summary</h2>
-    <div class="table-container">
-      <table id="feesTable">
-        <thead>
-          <tr>
-            <th>Term</th>
-            <th>Total Fee</th>
-            <th>Amount Paid</th>
-            <th>Balance</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="feesTableBody">
-          <tr>
-            <td colspan="5" style="text-align: center;">Loading...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <section>
+      <h2><i class="fa-solid fa-money-bill-wave"></i> Fees Summary</h2>
+      <div class="table-container">
+        <table id="feesTable">
+          <thead>
+            <tr>
+              <th>Term</th>
+              <th>Total Fee</th>
+              <th>Amount Paid</th>
+              <th>Balance</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="feesTableBody">
+            <tr class="loading-row">
+              <td colspan="5" class="text-center">Loading fees information...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-    <!-- M-Pesa Payment Section -->
-    <div class="card" id="paymentSection" style="display: none;">
-      <h3><i class="fa-solid fa-mobile-screen-button"></i> Pay School Fees via M-Pesa</h3>
-      <div class="payment-form">
-        <div class="form-row">
-          <div>
-            <label for="paymentPhone">M-Pesa Phone Number</label>
-            <input type="tel" id="paymentPhone" placeholder="254712345678" required />
+    <!-- M-Pesa Payment Section (conditionally shown) -->
+    <section id="paymentSection" style="display: none;">
+      <div class="card">
+        <h3><i class="fa-solid fa-mobile-screen-button"></i> Pay School Fees via M-Pesa</h3>
+        <div class="payment-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="paymentPhone">M-Pesa Phone Number</label>
+              <input type="tel" id="paymentPhone" placeholder="e.g. 254712345678" pattern="254[0-9]{9}" required />
+            </div>
+            <div class="form-group">
+              <label for="paymentAmount">Amount (KES)</label>
+              <input type="number" id="paymentAmount" placeholder="e.g. 5000" min="100" step="1" required />
+            </div>
           </div>
-          <div>
-            <label for="paymentAmount">Amount (KES)</label>
-            <input type="number" id="paymentAmount" placeholder="5000" min="1" required />
+          <div class="form-actions">
+            <button id="payBtn" class="btn primary" type="button">
+              <i class="fa-solid fa-paper-plane"></i> Send STK Push
+            </button>
           </div>
         </div>
-        <div class="form-actions">
-          <button id="payBtn" class="btn primary">
-            <i class="fa-solid fa-paper-plane"></i> Send STK Push
-          </button>
+
+        <div class="payment-info">
+          <h4>Manual Payment Options:</h4>
+          <ul>
+            <li><strong>EQUITY Paybill:</strong> 676554<br>Account: <em id="equityAccount">—</em></li>
+            <li><strong>KCB Paybill:</strong> 522522<br>Account: <em id="kcbAccount">—</em></li>
+            <li><strong>FORTUNE Paybill:</strong> 852648<br>Account: <em id="fortuneAccount">—</em></li>
+          </ul>
+          <p class="note"><strong>Important:</strong> Use your child's name and class as the account reference when paying manually.</p>
         </div>
       </div>
-      <div class="payment-info">
-        <h4>Payment Instructions:</h4>
-        <ul>
-          <li><strong>1. EQUITY Paybill:</strong> 676554<br>
-              Account: <em id="equityAccount">Loading...</em></li>
-          <li><strong>2. KCB Paybill:</strong> 522522<br>
-              Account: <em id="kcbAccount">Loading...</em></li>
-          <li><strong>3. FORTUNE Paybill:</strong> 852648<br>
-              Account: <em id="fortuneAccount">Loading...</em></li>
-        </ul>
-        <p><strong>Note:</strong> You can also pay manually using the paybill numbers above with your child's name and class as account reference.</p>
-      </div>
-    </div>
+    </section>
 
     <!-- Latest Results -->
-    <h2><i class="fa-solid fa-chart-line"></i> Latest Exam Results</h2>
-    <div class="table-container">
-      <table id="resultsTable">
-        <thead>
-          <tr>
-            <th>Term</th>
-            <th>Subject</th>
-            <th>Marks (/100)</th>
-            <th>Grade</th>
-            <th>Remarks</th>
-          </tr>
-        </thead>
-        <tbody id="resultsTableBody">
-          <tr>
-            <td colspan="5" style="text-align: center;">Loading...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <section>
+      <h2><i class="fa-solid fa-chart-line"></i> Latest Exam Results</h2>
+      <div class="table-container">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Term</th>
+              <th>Subject</th>
+              <th>Marks (/100)</th>
+              <th>Grade</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody">
+            <tr class="loading-row">
+              <td colspan="5" class="text-center">Loading results...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <!-- School Announcements -->
-    <h2><i class="fa-solid fa-bullhorn"></i> School Announcements</h2>
-    <div id="dashboardAnnouncementsContainer" class="announcements">
-      <div style="text-align: center; padding: 40px; color: var(--muted);">
-        <i class="fa-solid fa-hourglass-end"></i> Loading announcements...
+    <section>
+      <h2><i class="fa-solid fa-bullhorn"></i> School Announcements</h2>
+      <div id="dashboardAnnouncementsContainer" class="announcements">
+        <div class="loading-placeholder">
+          <i class="fa-solid fa-hourglass-half"></i> Loading announcements...
+        </div>
       </div>
-    </div>
+    </section>
 
   </div>
+
+  <!-- Global notification area (optional) -->
+  <div id="globalMessage" class="global-message" style="display:none;"></div>
 
   <script src="/parents/students-dashboard.js"></script>
 </body>

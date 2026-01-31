@@ -286,90 +286,160 @@ router.delete('/:id', requireAuth, async (req, res) => {
 });
 
 // Parent dashboard data
+// Parent dashboard data – returns profile, recent results, fees overview
+// Parent / Admin dashboard data for a specific student
 router.get('/dashboard/:studentId', requireAuth, async (req, res) => {
-  const { studentId } = req.params;
+  try {
+    const { studentId } = req.params;
 
-  // Find the student
-  const student = await Student.findById(studentId).populate('parent', 'name email');
-  if (!student) {
-    return res.status(404).json({ message: 'Student not found' });
-  }
+    // Fetch student + parent info
+    const student = await Student.findById(studentId)
+      .populate('parent', 'name email phone role')
+      .lean();
 
-  // Check if user is parent of this student or admin
-  if (req.user.role === 'parent' && String(student.parent._id) !== req.user.sub) {
-    return res.status(403).json({ message: 'Access denied' });
-  }
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
 
-  // Get student's results
-  const results = await require('../models/Result').find({ student: studentId })
-    .sort({ createdAt: -1 })
-    .limit(10);
+    // Authorization: parent must own this student, or user must be admin/teacher
+    const isParentOfStudent = 
+      req.user.role === 'parent' && 
+      student.parent && 
+      String(student.parent._id) === req.user.id;
 
-  // Get student's bills/fees
-  const bills = await require('../models/Bill').find({ student: studentId })
-    .sort({ createdAt: -1 });
+    const isAuthorized = isParentOfStudent || ['admin', 'teacher'].includes(req.user.role);
 
-  // Get student's payments
-  const payments = await require('../models/Payment').find({ student: studentId })
-    .sort({ createdAt: -1 });
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to view this student\'s dashboard'
+      });
+    }
 
-  // Calculate fee balance
-  const totalBilled = bills.reduce((sum, bill) => sum + bill.amount, 0);
-  const totalPaid = payments
-    .filter(payment => payment.status === 'completed')
-    .reduce((sum, payment) => sum + payment.amount, 0);
-  const balance = totalBilled - totalPaid;
+    // Load related data with graceful degradation
+    let results = [], bills = [], payments = [], feeStructure = null;
 
-  // Get fee structure for the student's class
-  const feeStructure = await require('../models/FeeStructure').findOne({ 
-    classLevel: student.classLevel 
-  });
+    try {
+      const Result = require('../models/Result');
+      results = await Result.find({ student: studentId })
+        .sort({ year: -1, term: -1 })
+        .limit(10)
+        .lean();
+    } catch (err) {
+      console.warn('[dashboard] Results query failed:', err.message);
+    }
 
-  return res.json({
-    student: {
-      id: student._id,
-      name: student.name,
-      classLevel: student.classLevel,
-      admissionNumber: student.admissionNumber,
-      parent: student.parent
-    },
-    results: results.map(result => ({
-      id: result._id,
-      term: result.term,
-      year: result.year,
-      subjects: result.subjects,
-      total: result.total,
-      grade: result.grade,
-      createdAt: result.createdAt
-    })),
-    fees: {
-      totalBilled,
-      totalPaid,
-      balance,
-      status: balance <= 0 ? 'paid' : balance < totalBilled * 0.5 ? 'partial' : 'unpaid',
-      bills: bills.map(bill => ({
-        id: bill._id,
-        description: bill.description,
-        amount: bill.amount,
-        term: bill.term,
-        createdAt: bill.createdAt
+    try {
+      const Bill = require('../models/Bill');
+      bills = await Bill.find({ student: studentId })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .lean();
+    } catch (err) {
+      console.warn('[dashboard] Bills query failed:', err.message);
+    }
+
+    try {
+      const Payment = require('../models/Payment');
+      payments = await Payment.find({ student: studentId })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .lean();
+    } catch (err) {
+      console.warn('[dashboard] Payments query failed:', err.message);
+    }
+
+    try {
+      const FeeStructure = require('../models/FeeStructure');
+      feeStructure = await FeeStructure.findOne({ classLevel: student.classLevel }).lean();
+    } catch (err) {
+      console.warn('[dashboard] FeeStructure lookup failed:', err.message);
+    }
+
+    // Calculate balance
+    const totalBilled = bills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+    const totalPaid = payments
+      .filter(p => ['completed', 'success', 'paid'].includes((p.status || '').toLowerCase()))
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const balance = totalBilled - totalPaid;
+
+    // Determine fee status (adjust thresholds as needed)
+    let feeStatus = balance <= 0 ? 'paid' : 'outstanding';
+    if (balance > 0) {
+      if (balance < totalBilled * 0.3) feeStatus = 'partial-low';
+      else if (balance < totalBilled * 0.7) feeStatus = 'partial';
+      else feeStatus = 'high';
+    }
+
+    // Build clean response
+    res.json({
+      success: true,
+      student: {
+        id: student._id.toString(),
+        name: student.name,
+        classLevel: student.classLevel,
+        stream: student.stream || null,
+        admissionNumber: student.admissionNumber,
+        gender: student.gender,
+        dob: student.dob ? student.dob.toISOString().split('T')[0] : null,
+        parent: student.parent ? {
+          id: student.parent._id?.toString(),
+          name: student.parent.name,
+          email: student.parent.email,
+          phone: student.parent.phone || null
+        } : null
+      },
+      results: results.map(r => ({
+        id: r._id.toString(),
+        term: r.term,
+        year: r.year,
+        subjects: r.subjects || [],
+        totalMarks: r.total,
+        grade: r.grade,
+        date: r.createdAt ? r.createdAt.toISOString() : null
       })),
-      payments: payments.map(payment => ({
-        id: payment._id,
-        amount: payment.amount,
-        phone: payment.phone,
-        status: payment.status,
-        createdAt: payment.createdAt
-      }))
-    },
-    feeStructure: feeStructure ? {
-      tuitionFee: feeStructure.tuitionFee,
-      meals: feeStructure.meals,
-      transport: feeStructure.transport,
-      otherFees: feeStructure.otherFees,
-      total: feeStructure.total
-    } : null
-  });
+      fees: {
+        summary: {
+          totalBilled,
+          totalPaid,
+          balance,
+          status: feeStatus,
+          lastActivity: payments.length > 0 ? payments[0].createdAt?.toISOString() : null
+        },
+        recentBills: bills.map(b => ({
+          id: b._id.toString(),
+          description: b.description || 'Fee bill',
+          amount: Number(b.amount || 0),
+          term: b.term,
+          date: b.createdAt?.toISOString()
+        })),
+        recentPayments: payments.map(p => ({
+          id: p._id.toString(),
+          amount: Number(p.amount || 0),
+          method: p.method || (p.phone ? 'M-Pesa' : 'Unknown'),
+          status: p.status || 'unknown',
+          date: p.createdAt?.toISOString()
+        }))
+      },
+      feeStructure: feeStructure ? {
+        tuition: Number(feeStructure.tuitionFee || 0),
+        meals: Number(feeStructure.meals || 0),
+        transport: Number(feeStructure.transport || 0),
+        other: Number(feeStructure.otherFees || 0),
+        totalPerTerm: Number(feeStructure.total || 0)
+      } : null
+    });
+  } catch (err) {
+    console.error('GET /student/dashboard/:studentId → error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while loading dashboard',
+      ...(process.env.NODE_ENV === 'development' && { error: err.message })
+    });
+  }
 });
-
 module.exports = router;
