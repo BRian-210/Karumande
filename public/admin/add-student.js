@@ -190,3 +190,14 @@ elements.saveBtn?.addEventListener('click', async (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   loadCurrentUser();
 });
+
+// ── Helper functions ──────────────────────────────────────────────
+function showMessage(text, type = 'info') {
+  elements.msg.textContent = text;
+  elements.msg.className = `message ${type}`; // e.g. .success, .error, .loading
+}
+
+function showError(text) {
+  showMessage(text, 'error');
+  elements.saveBtn.disabled = false;
+}
