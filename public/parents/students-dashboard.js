@@ -135,7 +135,7 @@ function updateFeesTable(fees) {
 }
 
 function updateResultsTable(results) {
-  const tbody = document.getElementById('resultsTableBody');
+  const tbody = document.getElementById('resultsBody');
 
   if (!results || results.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No results found</td></tr>';
