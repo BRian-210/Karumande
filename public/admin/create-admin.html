@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Create Admin | Karumande</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>Create Admin Account</h1>
+    <form id="adminForm">
+      <label for="name">Full Name</label>
+      <input id="name" type="text" required />
+
+      <label for="email">Email</label>
+      <input id="email" type="email" required />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required minlength="6" />
+
+      <label for="inviteCode">Invite Code</label>
+      <input id="inviteCode" type="text" required />
+
+      <button type="submit">Create Admin</button>
+      <div id="err" class="error" style="display:none"></div>
+      <div id="success" class="success" style="display:none"></div>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center;">
+      <a href="/admin/login.html">Already have an account? Login</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('adminForm');
+    const errEl = document.getElementById('err');
+    const successEl = document.getElementById('success');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const inviteCode = document.getElementById('inviteCode').value.trim();
+
+      try {
+        const res = await fetch('/api/auth/create-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, inviteCode })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to create admin');
+        }
+
+        successEl.textContent = 'Admin account created successfully! You can now login.';
+        successEl.style.display = 'block';
+
+        // Clear form
+        form.reset();
+
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/admin/login.html';
+        }, 3000);
+
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

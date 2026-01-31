@@ -137,7 +137,7 @@ const createStudentValidation = [
 router.post(
   '/',
   requireAuth,
-  requireRole(['admin', 'teacher']),
+  requireRole(['admin', 'teacher', 'parent']),
   createStudentValidation,
   async (req, res) => {
     const errors = validationResult(req);
@@ -147,10 +147,20 @@ router.post(
 
     const { name, classLevel, parentId, stream, admissionNumber, gender, dob } = req.body;
     let parent = null;
-    if (parentId) {
-      parent = await User.findOne({ _id: parentId, role: 'parent' });
-      if (!parent) {
-        return res.status(404).json({ message: 'Parent not found or invalid role' });
+
+    if (req.user.role === 'parent') {
+      // Parents can only create students for themselves
+      parent = await User.findById(req.user.id);
+      if (!parent || parent.role !== 'parent') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else {
+      // Admins and teachers can assign any parent
+      if (parentId) {
+        parent = await User.findOne({ _id: parentId, role: 'parent' });
+        if (!parent) {
+          return res.status(404).json({ message: 'Parent not found or invalid role' });
+        }
       }
     }
 

@@ -125,6 +125,56 @@ router.post(
 );
 
 /* ======================================================
+   CREATE ADMIN (REQUIRES INVITE CODE)
+====================================================== */
+
+router.post(
+  '/create-admin',
+  [
+    body('name').trim().notEmpty(),
+    body('email').isEmail(),
+    body('password').isLength({ min: 6 }),
+    body('inviteCode').trim().notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, email, password, inviteCode } = req.body;
+
+    // Check invite code
+    if (inviteCode !== process.env.ADMIN_INVITE_CODE) {
+      return res.status(403).json({ message: 'Invalid invite code' });
+    }
+
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) {
+      return res.status(409).json({ message: 'Email already exists' });
+    }
+
+    const admin = await User.create({
+      name,
+      email: email.toLowerCase(),
+      passwordHash: password,
+      role: 'admin',
+      mustChangePassword: false,
+    });
+
+    res.status(201).json({
+      message: 'Admin created successfully',
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+      },
+    });
+  }
+);
+
+/* ======================================================
    LOGIN (EMAIL OR ADMISSION NUMBER)
 ====================================================== */
 

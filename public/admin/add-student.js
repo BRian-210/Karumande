@@ -23,6 +23,37 @@ if (!token) {
   window.location.href = '/admin/login.html';
 }
 
+// ── Get current user info ─────────────────────────────────────────
+let currentUser = null;
+async function loadCurrentUser() {
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      adjustUIForRole();
+    }
+  } catch (err) {
+    console.error('Failed to load user info:', err);
+  }
+}
+
+// ── Adjust UI based on user role ──────────────────────────────────
+function adjustUIForRole() {
+  if (!currentUser) return;
+
+  const parentIdField = document.getElementById('parentId');
+  const parentIdLabel = parentIdField?.previousElementSibling;
+
+  if (currentUser.role === 'parent') {
+    // Hide parent selection for parents - they can only add their own children
+    if (parentIdField) parentIdField.style.display = 'none';
+    if (parentIdLabel) parentIdLabel.style.display = 'none';
+  }
+}
+
 // ── Mobile sidebar toggle ─────────────────────────────────────────
 elements.mobileToggle?.addEventListener('click', () => {
   elements.sidebar?.classList.toggle('open');
@@ -59,6 +90,11 @@ elements.saveBtn?.addEventListener('click', async (e) => {
     gender: elements.gender.value,
     parentId: elements.parentId.value.trim() || undefined,
   };
+
+  // For parents, automatically set parentId to their own ID
+  if (currentUser && currentUser.role === 'parent') {
+    values.parentId = currentUser.id;
+  }
 
   // ── Client-side validation ──────────────────────────────────────
   if (!values.name) {
@@ -135,7 +171,12 @@ elements.saveBtn?.addEventListener('click', async (e) => {
     showMessage('✓ Student created successfully! Redirecting...', 'success');
 
     setTimeout(() => {
-      window.location.href = '/admin/students-list.html';
+      // Redirect based on user role
+      if (currentUser && currentUser.role === 'parent') {
+        window.location.href = '/student-dashboard.html';
+      } else {
+        window.location.href = '/admin/students-list.html';
+      }
     }, 1400);
 
   } catch (err) {
@@ -145,13 +186,7 @@ elements.saveBtn?.addEventListener('click', async (e) => {
   }
 });
 
-// ── Helper functions ──────────────────────────────────────────────
-function showMessage(text, type = 'info') {
-  elements.msg.textContent = text;
-  elements.msg.className = `message ${type}`; // e.g. .success, .error, .loading
-}
-
-function showError(text) {
-  showMessage(text, 'error');
-  elements.saveBtn.disabled = false;
-}
+// ── Initialize ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadCurrentUser();
+});
