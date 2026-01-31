@@ -30,7 +30,7 @@ router.post(
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
     // Parent can only pay for their child
-    if (req.user.role === 'parent' && String(student.parent) !== req.user.sub) {
+    if (req.user.role === 'parent' && String(student.parent) !== req.user.id) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
