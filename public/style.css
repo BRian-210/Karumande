@@ -2037,95 +2037,73 @@ html, body {
   fill: currentColor;
 }
 
-/* ===== Mobile Responsive Overrides ===== */
+/* ===== Responsive Mobile Overrides ===== */
 @media (max-width: 768px) {
+  /* 1. Header Layout: Flip button to left, logo to right */
+  .nav-container {
+    flex-direction: row-reverse; /* Swaps the burger and the brand */
+    justify-content: flex-end;   /* Aligns them to the left of the screen */
+    padding: 10px 15px;
+    gap: 12px;
+  }
+
   .burger {
-    display: flex; /* Ensure button is visible */
-    z-index: 1001; /* Keep it above the sidebar */
+    display: flex; /* Show the toggle button */
   }
 
-  .nav-links {
-    display: flex; /* Change from 'none' to 'flex' */
-    flex-direction: column;
-    position: fixed;
-    top: 0;
-    right: 100%; /* Start hidden off-screen to the right */
-    width: 280px;
-    height: 100vh;
-    background: var(--surface);
-    padding: 100px 30px;
-    box-shadow: -10px 0 30px rgba(0,0,0,0.1);
-    transition: right 0.3s ease-in-out; /* Smooth slide effect */
+  .brand {
+    margin-right: auto; /* Pushes the brand name/logo to the right */
   }
 
-  /* When JS adds the .active class, slide it into view */
-  .nav-links.active {
-    right: 0;
+  .brand-motto {
+    display: none; /* Hide motto on small screens to prevent crowding */
   }
 
-  .nav-link {
-    font-size: 1.2rem;
-    padding: 15px 0;
-    border-bottom: 1px solid var(--border);
+  /* 2. Fix Horizontal Fit */
+  .hero, .section, .panel {
+    padding: 40px 15px;
+    margin: 0 auto;
     width: 100%;
+    box-sizing: border-box;
   }
-}
 
-
-  /* 2. Stack the Hero Section */
   .hero {
-    grid-template-columns: 1fr; /* Force single column */
+    grid-template-columns: 1fr;
     text-align: center;
-    margin: 20px auto;
   }
 
   .hero-actions {
     justify-content: center;
   }
 
-  .hero-media img {
-    max-height: 300px; /* Prevent image from taking too much vertical space */
-    width: 100%;
+  /* 3. Navigation Sidebar (Hidden by default) */
+  .nav-links {
+    display: none; /* Add JS toggle logic to show this as a sidebar */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--surface);
+    flex-direction: column;
+    padding: 80px 20px;
+    z-index: 2000;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.1);
   }
+}
 
-  /* 3. Adjust Panel Spacing */
-  .panel.two-column {
-    grid-template-columns: 1fr; /* Stack images on top of text */
-  }
-
-  .panel-content {
-    padding: 24px;
-  }
-
-  /* 4. Fix Gallery & Grid Spacing */
-  .section {
-    padding: 40px 20px; /* Reduce large vertical padding */
-  }
-
-  .gallery-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Smaller items */
-  }
-
-  /* 5. Typography tweaks */
-  .brand-name {
-    font-size: 1rem;
-  }
-  
-  .brand-motto {
-    display: none; /* Hide motto on very small screens to save space */
-  }
-
-/* Extra small screens (Phones) */
-@media (max-width: 360px) {
+/* Extra Small Phones */
+@media (max-width: 480px) {
   .hero-content h1 {
-    font-size: 2rem; /* Override clamp if it's still too big */
+    font-size: 1.8rem; /* Force a smaller size for very narrow screens */
   }
   
+  .brand-name {
+    font-size: 0.95rem;
+  }
+
   .btn {
     width: 100%; /* Make buttons full-width for easier tapping */
     justify-content: center;
   }
 }
-
-
-   
