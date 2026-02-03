@@ -2039,23 +2039,38 @@ html, body {
 
 /* ===== Mobile Responsive Overrides ===== */
 @media (max-width: 768px) {
-  /* 1. Show the Burger Menu & Hide Desktop Links */
   .burger {
-    display: flex; /* Show the burger icon */
+    display: flex; /* Ensure button is visible */
+    z-index: 1001; /* Keep it above the sidebar */
   }
 
   .nav-links {
-    display: none; /* Hide standard links - you'll need JS to toggle a '.active' class here */
-    /* Alternative: Simple vertical stack if you don't want JS yet */
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: var(--surface);
+    display: flex; /* Change from 'none' to 'flex' */
     flex-direction: column;
-    padding: 20px;
-    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0;
+    right: -100%; /* Start hidden off-screen to the right */
+    width: 280px;
+    height: 100vh;
+    background: var(--surface);
+    padding: 100px 30px;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+    transition: right 0.3s ease-in-out; /* Smooth slide effect */
   }
+
+  /* When JS adds the .active class, slide it into view */
+  .nav-links.active {
+    right: 0;
+  }
+
+  .nav-link {
+    font-size: 1.2rem;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+  }
+}
+
 
   /* 2. Stack the Hero Section */
   .hero {
