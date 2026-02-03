@@ -2047,7 +2047,6 @@ html, body {
   .nav-links {
     display: none; /* Hide standard links - you'll need JS to toggle a '.active' class here */
     /* Alternative: Simple vertical stack if you don't want JS yet */
-    /* 
     position: absolute;
     top: 100%;
     left: 0;
@@ -2056,7 +2055,6 @@ html, body {
     flex-direction: column;
     padding: 20px;
     border-bottom: 1px solid var(--border);
-    */
   }
 
   /* 2. Stack the Hero Section */
