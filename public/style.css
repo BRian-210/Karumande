@@ -2049,7 +2049,7 @@ html, body {
     flex-direction: column;
     position: fixed;
     top: 0;
-    right: -100%; /* Start hidden off-screen to the right */
+    right: 100%; /* Start hidden off-screen to the right */
     width: 280px;
     height: 100vh;
     background: var(--surface);
@@ -2114,10 +2114,9 @@ html, body {
   .brand-motto {
     display: none; /* Hide motto on very small screens to save space */
   }
-}
 
 /* Extra small screens (Phones) */
-@media (max-width: 480px) {
+@media (max-width: 360px) {
   .hero-content h1 {
     font-size: 2rem; /* Override clamp if it's still too big */
   }
