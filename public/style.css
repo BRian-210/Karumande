@@ -2037,6 +2037,83 @@ html, body {
   fill: currentColor;
 }
 
+/* ===== Mobile Responsive Overrides ===== */
+@media (max-width: 768px) {
+  /* 1. Show the Burger Menu & Hide Desktop Links */
+  .burger {
+    display: flex; /* Show the burger icon */
+  }
+
+  .nav-links {
+    display: none; /* Hide standard links - you'll need JS to toggle a '.active' class here */
+    /* Alternative: Simple vertical stack if you don't want JS yet */
+    /* 
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: var(--surface);
+    flex-direction: column;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    */
+  }
+
+  /* 2. Stack the Hero Section */
+  .hero {
+    grid-template-columns: 1fr; /* Force single column */
+    text-align: center;
+    margin: 20px auto;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-media img {
+    max-height: 300px; /* Prevent image from taking too much vertical space */
+    width: 100%;
+  }
+
+  /* 3. Adjust Panel Spacing */
+  .panel.two-column {
+    grid-template-columns: 1fr; /* Stack images on top of text */
+  }
+
+  .panel-content {
+    padding: 24px;
+  }
+
+  /* 4. Fix Gallery & Grid Spacing */
+  .section {
+    padding: 40px 20px; /* Reduce large vertical padding */
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Smaller items */
+  }
+
+  /* 5. Typography tweaks */
+  .brand-name {
+    font-size: 1rem;
+  }
+  
+  .brand-motto {
+    display: none; /* Hide motto on very small screens to save space */
+  }
+}
+
+/* Extra small screens (Phones) */
+@media (max-width: 480px) {
+  .hero-content h1 {
+    font-size: 2rem; /* Override clamp if it's still too big */
+  }
+  
+  .btn {
+    width: 100%; /* Make buttons full-width for easier tapping */
+    justify-content: center;
+  }
+}
 
 
    

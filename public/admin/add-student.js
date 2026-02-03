@@ -33,10 +33,29 @@ async function loadCurrentUser() {
     if (res.ok) {
       const data = await res.json();
       currentUser = data.user;
+      
+      // Check if user has permission to access admin interface
+      const allowedRoles = ['admin', 'teacher', 'parent'];
+      if (!allowedRoles.includes(currentUser.role)) {
+        alert(`Access denied. Your role (${currentUser.role}) does not have permission to access the admin interface.`);
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        window.location.href = '/login.html';
+        return;
+      }
+      
       adjustUIForRole();
+    } else {
+      // If we can't get user info, redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('adminToken');
+      window.location.href = '/admin/login.html';
     }
   } catch (err) {
     console.error('Failed to load user info:', err);
+    localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
+    window.location.href = '/admin/login.html';
   }
 }
 
