@@ -15,9 +15,22 @@ router.get('/', requireAuth, async (req, res) => {
     const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
     filter.student = { $in: studentIds };
   }
+  if (req.query.studentId) {
+    if (req.user.role === 'parent') {
+      const allowed = await Student.find({ parent: req.user.sub }).distinct('_id');
+      if (!allowed.map(String).includes(String(req.query.studentId))) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+    filter.student = req.query.studentId;
+  }
   if (req.query.term) filter.term = req.query.term;
   const [items, total] = await Promise.all([
-    Bill.find(filter).populate('student', 'name classLevel parent').skip(skip).limit(limit),
+    Bill.find(filter)
+      .populate('student', 'name classLevel parent')
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit),
     Bill.countDocuments(filter)
   ]);
   return res.json({ data: items, page, limit, total });
@@ -118,5 +131,46 @@ router.patch(
   }
 );
 
-module.exports = router;
+// Admin-only adjustment of bill amounts/balance
+router.patch(
+  '/:id/adjust',
+  requireAuth,
+  requireRole('admin', 'accountant'),
+  [
+    body('amount').optional().isNumeric(),
+    body('amountPaid').optional().isNumeric(),
+    body('balance').optional().isNumeric()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
+    const { amount, amountPaid, balance } = req.body;
+    if (amount === undefined && amountPaid === undefined && balance === undefined) {
+      return res.status(400).json({ message: 'Provide amount, amountPaid, or balance' });
+    }
+
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+
+    if (amount !== undefined) bill.amount = Math.max(Number(amount), 0);
+
+    const safeAmount = Number(bill.amount || 0);
+    if (amountPaid !== undefined) {
+      bill.amountPaid = Math.min(Math.max(Number(amountPaid), 0), safeAmount);
+      bill.balance = Math.max(safeAmount - bill.amountPaid, 0);
+    } else if (balance !== undefined) {
+      bill.balance = Math.min(Math.max(Number(balance), 0), safeAmount);
+      bill.amountPaid = Math.max(safeAmount - bill.balance, 0);
+    }
+
+    if (bill.balance === 0) bill.status = 'paid';
+    else if (bill.amountPaid > 0) bill.status = 'partial';
+    else bill.status = 'pending';
+
+    await bill.save();
+    return res.json(bill);
+  }
+);
+
+module.exports = router;

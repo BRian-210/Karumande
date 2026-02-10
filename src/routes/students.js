@@ -424,6 +424,9 @@ router.get('/dashboard/:studentId', requireAuth, async (req, res) => {
           id: b._id.toString(),
           description: b.description || 'Fee bill',
           amount: Number(b.amount || 0),
+          amountPaid: Number(b.amountPaid || 0),
+          balance: Number(b.balance ?? Math.max(Number(b.amount || 0) - Number(b.amountPaid || 0), 0)),
+          status: b.status || 'pending',
           term: b.term,
           date: b.createdAt?.toISOString()
         })),

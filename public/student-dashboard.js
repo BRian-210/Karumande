@@ -49,6 +49,10 @@ async function loadStudentData() {
       // Hide loading states
       document.getElementById('feesTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center;">No students found</td></tr>';
       document.getElementById('resultsTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center;">No students found</td></tr>';
+      const paymentsBody = document.getElementById('paymentsTableBody');
+      if (paymentsBody) {
+        paymentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No students found</td></tr>';
+      }
       return;
     }
 
@@ -70,6 +74,7 @@ async function loadStudentData() {
     // Update UI with student data
     updateStudentInfo(dashboardData);
     updateFeesTable(dashboardData.fees);
+    updatePaymentsTable(dashboardData.fees);
     updateResultsTable(dashboardData.results);
     updatePaymentSection(dashboardData);
 
@@ -85,12 +90,13 @@ function updateStudentInfo(data) {
   document.getElementById('studentAdmission').textContent = data.student.admissionNumber;
 
   // Update fee balance card
-  const balance = data.fees.summary?.balance || 0;
-  document.getElementById('feeBalance').textContent = `KES ${balance.toLocaleString()}`;
+  const balance = Number(data.fees.summary?.balance || 0);
+  document.getElementById('feeBalance').textContent =
+    balance <= 0 ? 'Cleared' : `KES ${balance.toLocaleString()}`;
 
   const statusElement = document.getElementById('feeStatus');
-  const status = data.fees.summary?.status || 'unknown';
-  statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+  const status = data.fees.summary?.status || (balance <= 0 ? 'paid' : 'unknown');
+  statusElement.textContent = formatStatusLabel(status, balance);
   statusElement.className = `badge ${status}`;
 }
 
@@ -102,31 +108,19 @@ function updateFeesTable(fees) {
     return;
   }
 
-  // Group bills by term
-  const termGroups = {};
-  fees.recentBills.forEach(bill => {
-    if (!termGroups[bill.term]) {
-      termGroups[bill.term] = { total: 0, bills: [] };
-    }
-    termGroups[bill.term].total += bill.amount || 0;
-    termGroups[bill.term].bills.push(bill);
-  });
-
-  const rows = Object.entries(termGroups).map(([term, data]) => {
-    const paidForTerm = (fees.recentPayments || [])
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    const balance = data.total - paidForTerm;
-    const status = balance <= 0 ? 'paid' : balance < data.total * 0.5 ? 'partial' : 'unpaid';
+  const rows = fees.recentBills.map(bill => {
+    const amount = Number(bill.amount || 0);
+    const amountPaid = Number(bill.amountPaid || 0);
+    const balance = Number(bill.balance ?? Math.max(amount - amountPaid, 0));
+    const status = bill.status || (balance <= 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'pending');
 
     return `
       <tr>
-        <td>${term}</td>
-        <td>KES ${data.total.toLocaleString()}</td>
-        <td>KES ${paidForTerm.toLocaleString()}</td>
-        <td>KES ${balance.toLocaleString()}</td>
-        <td><span class="badge ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+        <td>${bill.term || '—'}</td>
+        <td>KES ${amount.toLocaleString()}</td>
+        <td>KES ${amountPaid.toLocaleString()}</td>
+        <td>${balance <= 0 ? 'Cleared' : `KES ${balance.toLocaleString()}`}</td>
+        <td><span class="badge ${status}">${formatStatusLabel(status, balance)}</span></td>
       </tr>
     `;
   });
@@ -257,6 +251,39 @@ async function initiatePayment(studentId) {
     console.error('Payment error:', err);
     showMessage(`Payment failed: ${err.message}`, 'error');
   }
+}
+
+function updatePaymentsTable(fees) {
+  const tbody = document.getElementById('paymentsTableBody');
+  if (!fees || !fees.recentPayments || fees.recentPayments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No payments found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = fees.recentPayments.map(p => {
+    const date = p.date ? new Date(p.date).toLocaleDateString() : '—';
+    const status = (p.status || 'unknown').toLowerCase();
+    return `
+      <tr>
+        <td>${date}</td>
+        <td>KES ${Number(p.amount || 0).toLocaleString()}</td>
+        <td>${p.method || 'Unknown'}</td>
+        <td><span class="badge ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function formatStatusLabel(status, balance = null) {
+  if (balance !== null && Number(balance) <= 0) return 'Cleared';
+  const key = (status || '').toLowerCase();
+  if (key === 'paid') return 'Cleared';
+  if (key === 'partial-low') return 'Partial (Low)';
+  if (key === 'partial') return 'Partial';
+  if (key === 'high') return 'High Balance';
+  if (key === 'outstanding') return 'Outstanding';
+  if (key === 'pending') return 'Pending';
+  return key ? key.charAt(0).toUpperCase() + key.slice(1) : '—';
 }
 
 function calculateGrade(score) {

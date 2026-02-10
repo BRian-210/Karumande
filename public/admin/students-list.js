@@ -79,9 +79,10 @@ function renderStudents(students) {
           <td>${s.classLevel}</td>
           <td>${s.parent?.name || 'N/A'}</td>
           <td style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="view-btn" data-id="${s._id}">View</button>
-            <a class="edit-btn" data-id="${s._id}" href="/admin/edit-student.html?id=${encodeURIComponent(s._id)}">Edit</a>
-            <button class="delete-btn" data-id="${s._id}">Delete</button>
+            <button class="btn view-btn" data-id="${s._id}">View</button>
+            <a class="btn edit-btn" data-id="${s._id}" href="/admin/edit-student.html?id=${encodeURIComponent(s._id)}">Edit</a>
+            <button class="btn fees-btn" data-id="${s._id}" data-name="${s.name}">Fees</button>
+            <button class="btn delete-btn" data-id="${s._id}">Delete</button>
           </td>
         </tr>
       `;
@@ -95,6 +96,15 @@ function renderStudents(students) {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       window.open(`/admin/student-profile.html?id=${id}`, '_blank');
+    });
+  });
+
+  // Fees balance editor
+  document.querySelectorAll('.fees-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const name = btn.dataset.name || 'Student';
+      await openFeesEditor(id, name);
     });
   });
 
@@ -116,6 +126,53 @@ function renderStudents(students) {
       }
     });
   });
+}
+
+async function openFeesEditor(studentId, studentName) {
+  try {
+    const res = await fetch(`/api/bills?studentId=${encodeURIComponent(studentId)}&limit=1`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to load student bills');
+    const data = await res.json();
+    const bills = data.data || data || [];
+    const bill = bills[0];
+
+    if (!bill) {
+      alert('No fee bill found for this student. Create or generate a bill first.');
+      return;
+    }
+
+    const currentBalance = Number(bill.balance ?? (Number(bill.amount || 0) - Number(bill.amountPaid || 0)));
+    const termLabel = bill.term ? ` (${bill.term})` : '';
+    const input = prompt(
+      `Update fee balance for ${studentName}${termLabel}\nCurrent balance: ${currentBalance}`,
+      String(currentBalance)
+    );
+    if (input === null) return;
+
+    const nextBalance = Number(input);
+    if (Number.isNaN(nextBalance) || nextBalance < 0) {
+      alert('Enter a valid non-negative number.');
+      return;
+    }
+
+    const patchRes = await fetch(`/api/bills/${encodeURIComponent(bill._id)}/adjust`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ balance: nextBalance })
+    });
+    const patchData = await patchRes.json().catch(() => ({}));
+    if (!patchRes.ok) throw new Error(patchData.message || 'Failed to update balance');
+
+    alert('Fee balance updated.');
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
 }
 
 // Search

@@ -1097,6 +1097,125 @@ textarea {
     width: 100%;
     justify-content: center;
   }
+
+  /* Global text sizing for small phones */
+  html {
+    font-size: 15.5px;
+  }
+}
+
+/* Extra-small screens: reduce type and spacing for readability without zoom */
+@media (max-width: 480px) {
+  html {
+    font-size: 15px;
+  }
+
+  .nav-container {
+    padding: 10px 14px;
+  }
+
+  .brand-name {
+    font-size: 1rem;
+  }
+
+  .brand-motto {
+    font-size: 0.75rem;
+  }
+
+  .hero {
+    margin: 24px auto;
+    gap: 24px;
+  }
+
+  .hero-content h1 {
+    font-size: clamp(1.9rem, 7vw, 2.4rem);
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+
+  .lede,
+  .hero .lede {
+    font-size: 1rem;
+  }
+
+  .section,
+  .panel {
+    padding: 56px 16px;
+  }
+
+  .panel-content {
+    padding: 24px;
+  }
+
+  .header p {
+    font-size: 1rem;
+  }
+
+  .form-card {
+    padding: 28px 18px;
+  }
+
+  .form-title {
+    font-size: 2rem;
+  }
+
+  .form-subtitle {
+    font-size: 1rem;
+    margin-bottom: 40px;
+  }
+
+  .section h3 {
+    font-size: 1.3rem;
+  }
+
+  label {
+    font-size: 1rem;
+  }
+
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 1rem;
+    padding: 14px;
+  }
+
+  .file-upload {
+    padding: 28px 16px;
+  }
+
+  .file-upload i {
+    font-size: 2.6rem;
+  }
+
+  .checkbox-group {
+    font-size: 1rem;
+    padding: 16px;
+  }
+
+  .submit-btn {
+    font-size: 1.1rem;
+    padding: 16px;
+  }
+
+  .success-message {
+    font-size: 1.1rem;
+    padding: 28px;
+  }
+
+  .success-message strong {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 360px) {
+  html {
+    font-size: 14.5px;
+  }
 }
 
 /* Admin Page Overrides */
