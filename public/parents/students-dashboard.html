@@ -13,16 +13,24 @@
   
   <link rel="stylesheet" href="/style.css" />
 </head>
-<body>
+<body class="parent-portal">
 
   <header>
     <div class="header-container">
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="portalMenu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
       <div class="header-title">
         <i class="fa-solid fa-user-graduate"></i> Parent / Student Portal
       </div>
-      <a href="/index.html" class="logout-btn" onclick="logout()" aria-label="Log out">
+      <nav class="portal-menu" id="portalMenu">
+        <a href="/index.html">Home</a>
+        <a href="/parents/students-dashboard.html" class="active">Dashboard</a>
+        <button class="menu-logout" id="menuLogout" type="button">Logout</button>
+      </nav>
+      <button class="logout-btn" id="logoutBtn" type="button" aria-label="Log out">
         <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-      </a>
+      </button>
     </div>
   </header>
 

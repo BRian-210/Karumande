@@ -15,6 +15,7 @@ function logout() {
 // Load student data on page load
 document.addEventListener('DOMContentLoaded', loadStudentData);
 document.addEventListener('DOMContentLoaded', loadDashboardAnnouncements);
+document.addEventListener('DOMContentLoaded', setupMenu);
 
 async function loadStudentData() {
   try {
@@ -135,7 +136,7 @@ function updateFeesTable(fees) {
 }
 
 function updateResultsTable(results) {
-  const tbody = document.getElementById('resultsBody');
+  const tbody = document.getElementById('resultsTableBody');
 
   if (!results || results.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No results found</td></tr>';
@@ -321,4 +322,26 @@ async function loadDashboardAnnouncements() {
       container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--muted);"><p>Could not load announcements.</p></div>';
     }
   }
+}
+
+function setupMenu() {
+  const menuToggle = document.getElementById('menuToggle');
+  const portalMenu = document.getElementById('portalMenu');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const menuLogout = document.getElementById('menuLogout');
+
+  logoutBtn?.addEventListener('click', logout);
+  menuLogout?.addEventListener('click', logout);
+
+  menuToggle?.addEventListener('click', () => {
+    const isOpen = portalMenu?.classList.toggle('open');
+    menuToggle.setAttribute('aria-expanded', String(!!isOpen));
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!portalMenu || !menuToggle) return;
+    if (portalMenu.contains(event.target) || menuToggle.contains(event.target)) return;
+    portalMenu.classList.remove('open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  });
 }
