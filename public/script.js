@@ -313,38 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
       alert(`Error: ${err.message}`);
     }
   }
-
   initializeGalleryAdmin();
-
-  // ====================
-  // Admin Panel Link (Only for Logged-in Admins)
-  // ====================
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.role === 'admin') {
-        // Avoid duplicate links if script runs multiple times
-        if (document.querySelector('.admin-link')) return;
-
-        const adminLink = document.createElement('a');
-        adminLink.href = '/admin/dashboard.html';
-        adminLink.textContent = 'Admin Panel';
-        adminLink.className = 'nav-link nav-pill admin-link';
-        adminLink.style.background = '#083070';
-        adminLink.style.color = 'white';
-        adminLink.style.marginLeft = '12px';
-        adminLink.style.fontWeight = '600';
-
-        const loginLink = document.querySelector('a[href="/login.html"]');
-        if (loginLink && loginLink.parentNode) {
-          loginLink.parentNode.insertBefore(adminLink, loginLink.nextSibling);
-        }
-      }
-    } catch (err) {
-      console.warn('Invalid or expired token:', err);
-      // Optionally clear invalid token
-      // localStorage.removeItem('token');
-    }
-  }
 });
+
+
+
+ 
