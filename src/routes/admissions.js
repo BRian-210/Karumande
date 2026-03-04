@@ -100,12 +100,20 @@ router.post(
           console.warn('Admin email notification failed:', emailResult.error || emailResult);
         }
 
-        const smsResult = await sendSMS({
-          to: admission.phone,
-          message: `Thank you, ${admission.parentName}! We have received ${admission.studentName}'s admission application. We'll review it and contact you soon. - Karumande Link School`,
-        });
-        if (smsResult && smsResult.success === false) {
-          console.warn('Admin SMS notification failed:', smsResult.error || smsResult);
+        // Normalize parent phone for international format required by Africa's Talking
+        if (admission.phone) {
+          let phone = admission.phone.trim();
+          if (phone.startsWith('0')) {
+            phone = `+254${phone.slice(1)}`;
+          }
+
+          const smsResult = await sendSMS({
+            to: phone,
+            message: `Thank you, ${admission.parentName}! We have received ${admission.studentName}'s admission application. We'll review it and contact you soon. - Karumande Link School`,
+          });
+          if (smsResult && smsResult.success === false) {
+            console.warn('Admin SMS notification failed:', smsResult.error || smsResult);
+          }
         }
       } catch (notifyErr) {
         console.error('Notification failed:', notifyErr?.message || notifyErr);
@@ -213,12 +221,19 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
     // Notify parent
     const actionWord = status === 'accepted' ? 'approved' : 'not approved';
     try {
-      const smsRes = await sendSMS({
-        to: admission.phone,
-        message: `Dear ${admission.parentName}, your admission application for ${admission.studentName} has been ${actionWord}. Contact the school for next steps. - Karumande Link School`,
-      });
-      if (smsRes && smsRes.success === false) {
-        console.warn('Parent SMS notification failed:', smsRes.error || smsRes);
+      if (admission.phone) {
+        let phone = admission.phone.trim();
+        if (phone.startsWith('0')) {
+          phone = `+254${phone.slice(1)}`;
+        }
+
+        const smsRes = await sendSMS({
+          to: phone,
+          message: `Dear ${admission.parentName}, your admission application for ${admission.studentName} has been ${actionWord}. Contact the school for next steps. - Karumande Link School`,
+        });
+        if (smsRes && smsRes.success === false) {
+          console.warn('Parent SMS notification failed:', smsRes.error || smsRes);
+        }
       }
 
       // If application accepted, create Student record and parent User if needed
