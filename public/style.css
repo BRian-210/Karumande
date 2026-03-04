@@ -2512,3 +2512,74 @@ html, body {
     border-radius: 10px;
   }
 }
+
+/* =========================================
+   Global Small-Screen Tight Layout (All Pages)
+   Applies on top of existing mobile rules
+   to reduce padding/spacing and prevent
+   any horizontal scrolling on normal phones.
+   ========================================= */
+@media (max-width: 768px) {
+  body {
+    font-size: 0.98rem;
+  }
+
+  .section,
+  .panel,
+  .content,
+  .container,
+  main.container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .layout {
+    flex-direction: column;
+  }
+
+  .content {
+    margin-left: 0;
+    padding-top: 20px;
+  }
+
+  .cards,
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card,
+  .form-card,
+  .contact-form {
+    padding: 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar h1 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 10px 12px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .brand-name {
+    font-size: 0.9rem;
+  }
+
+  .btn,
+  button {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}
