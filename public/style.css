@@ -2583,3 +2583,11 @@ html, body {
     padding-bottom: 10px;
   }
 }
+
+/* Final guard: ensure no horizontal scroll on any page */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
