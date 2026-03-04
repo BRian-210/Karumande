@@ -137,7 +137,7 @@ const createStudentValidation = [
 router.post(
   '/',
   requireAuth,
-  requireRole(['admin', 'teacher', 'parent']),
+  requireRole('admin', 'teacher', 'parent'),
   createStudentValidation,
   async (req, res) => {
     const errors = validationResult(req);
@@ -207,7 +207,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 router.patch(
   '/:id',
   requireAuth,
-  requireRole(['admin', 'teacher']),
+  requireRole('admin', 'teacher'),
   updateStudentValidation,
   async (req, res) => {
     const errors = validationResult(req);
@@ -234,7 +234,7 @@ router.patch(
 router.post(
   '/:id/promote',
   requireAuth,
-  requireRole(['admin', 'teacher']),
+  requireRole('admin', 'teacher'),
   [body('nextClassLevel').isIn(CLASS_LEVELS).withMessage('Invalid class level')],
   async (req, res) => {
     const errors = validationResult(req);
@@ -261,7 +261,7 @@ router.post(
 router.post(
   '/:id/deactivate',
   requireAuth,
-  requireRole(['admin', 'teacher']),
+  requireRole('admin', 'teacher'),
   async (req, res) => {
     const student = await Student.findByIdAndUpdate(
       req.params.id,
