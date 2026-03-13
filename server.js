@@ -25,6 +25,7 @@ const admissionRoutes = require('./src/routes/admissions');
 const teachersRoutes = require('./src/routes/teachers');
 const settingsRoutes = require('./src/routes/settings');
 const galleryRoutes = require('./src/routes/gallery');
+const feeBalanceRoutes = require('./src/routes/feeBalances');
 
 // Middleware
 const { requireAuth, requireRole, enforceMustChangePassword } = require('./src/middleware/auth');
@@ -94,6 +95,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ========================
+
+// Fee Balances routes
+app.use('/api/fee-balances', feeBalanceRoutes);
+
 // Health Check
 // ========================
 app.get('/api/health', (req, res) => {

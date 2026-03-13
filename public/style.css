@@ -29,7 +29,8 @@ html {
 }
 
 body {
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Open Sans", sans-serif;
+  font-weight: 300;
   line-height: 1.6;
   color: var(--ink);
   background: var(--bg);
@@ -2519,7 +2520,7 @@ html, body {
    to reduce padding/spacing and prevent
    any horizontal scrolling on normal phones.
    ========================================= */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   body {
     font-size: 0.98rem;
   }
