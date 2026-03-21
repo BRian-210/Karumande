@@ -3,14 +3,11 @@ const router = express.Router();
 const feeBalanceController = require('../controllers/feeBalanceController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-// Require authentication and admin role for these routes
-router.use(requireAuth);
-router.use(requireRole('admin'));
-
+// Attach auth middleware per-route to avoid issues with Router.use
 router.route('/:studentId')
-    .get(feeBalanceController.getFeeBalance);
+    .get(requireAuth, requireRole('admin'), feeBalanceController.getFeeBalance);
 
 router.route('/update')
-    .post(feeBalanceController.updateFeeBalance);
+    .post(requireAuth, requireRole('admin'), feeBalanceController.updateFeeBalance);
 
 module.exports = router;
