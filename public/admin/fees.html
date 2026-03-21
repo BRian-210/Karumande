@@ -52,52 +52,49 @@
           <table>
             <thead>
               <tr>
-                <th>Grade</th>
-                <th>Tuition Fee</th>
-                <th>Meals</th>
-                <th>Transport (3 Months)</th>
-                <th>Ream Paper</th>
-                <th>Assessment Book</th>
-                <th>Activity Fee</th>
-                <th>Total (KSh)</th>
+                <th>Class Level</th>
+                <th>Term</th>
+                <th>Amount (KSh)</th>
+                <th>Description</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="feeTableBody">
               <tr>
-                <td><strong>Playgroup</strong></td>
-                <td>3,000</td>
-                <td>2,200</td>
-                <td>3,000</td>
-                <td>200</td>
-                <td></td>
-                <td></td>
-                <td><strong>8,400</strong></td>
+                <td colspan="5">Loading...</td>
               </tr>
-              <tr>
-                <td><strong>PP1</strong></td>
-                <td>3,200</td>
-                <td>2,200</td>
-                <td>3,000</td>
-                <td>200</td>
-                <td></td>
-                <td></td>
-                <td><strong>8,600</strong></td>
-              </tr>
-              <tr>
-                <td><strong>PP2</strong></td>
-                <td>3,200</td>
-                <td>2,200</td>
-                <td>3,000</td>
-                <td>200</td>
-                <td></td>
-                <td></td>
-                <td><strong>8,600</strong></td>
-              </tr>
-              <tr>
-                <td><strong>Grade 1</strong></td>
-                <td>4,100</td>
-                <td>2,200</td>
-                <td>3,000</td>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-header">
+          <h3>Add New Fee Structure</h3>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <select id="newClass">
+            <option value="">Select Class</option>
+            <option>PlayGroup</option>
+            <option>PP1</option>
+            <option>PP2</option>
+            <option>Grade 1</option>
+            <option>Grade 2</option>
+            <option>Grade 3</option>
+            <option>Grade 4</option>
+            <option>Grade 5</option>
+            <option>Grade 6</option>
+            <option>Grade 7</option>
+            <option>Grade 8</option>
+            <option>Grade 9</option>
+          </select>
+          <select id="newTerm">
+            <option value="">Select Term</option>
+            <option>Term 1</option>
+            <option>Term 2</option>
+            <option>Term 3</option>
+          </select>
+          <input type="number" id="newAmount" placeholder="Amount" />
+          <input type="text" id="newDesc" placeholder="Description" />
+          <button class="btn btn-primary" onclick="addStructure()">Add</button>
+        </div>
                 <td>200</td>
                 <td></td>
                 <td></td>
@@ -203,6 +200,6 @@
     document.getElementById('mobileToggle').addEventListener('click', () => {
       document.getElementById('sidebar').classList.toggle('open');
     });
-  </script>
+  <script src="/admin/fees.js"></script>
 </body>
 </html>
