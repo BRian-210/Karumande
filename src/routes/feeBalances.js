@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const feeBalanceController = require('../controllers/feeBalanceController');
-const { protect, authorize } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
-// Protect all routes after this middleware
-router.use(protect);
-router.use(authorize('admin')); // Only admin can update fee balances
+// Require authentication and admin role for these routes
+router.use(requireAuth);
+router.use(requireRole('admin'));
 
 router.route('/:studentId')
     .get(feeBalanceController.getFeeBalance);

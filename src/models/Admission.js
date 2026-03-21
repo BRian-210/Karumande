@@ -20,7 +20,11 @@ const AdmissionSchema = new Schema({
   previousSchool: { type: String, default: null },
   medicalInfo: { type: String, default: null },
 
-  photo: { type: String, default: null },
+  photo: {
+    original: { type: String, default: null },
+    thumbnail: { type: String, default: null },
+    medium: { type: String, default: null },
+  },
   birthCertificate: { type: String, default: null },
   transferLetter: { type: String, default: null },
 

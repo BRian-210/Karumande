@@ -42,7 +42,8 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.14",
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.15.0",
+    "sharp": "^0.34.5"
   },
   "directories": {
     "doc": "docs"

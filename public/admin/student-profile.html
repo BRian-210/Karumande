@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Profile | Admin</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body class="admin-page">
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-user"></i> Student Profile</h1>
+    <div class="topbar-actions">
+      <button class="btn" id="backBtn">Back</button>
+      <button class="btn" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+        <a href="/admin/results.html"><i class="fa-solid fa-graduation-cap"></i> CBC Results</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="card">
+        <div class="card-header">
+          <h2 id="studentName">Loading...</h2>
+          <div id="studentMeta"></div>
+        </div>
+        <div class="card-body">
+          <section style="margin-bottom:18px;">
+            <h3>Personal & Admission</h3>
+            <p><strong>Admission No:</strong> <span id="admissionNumber">-</span></p>
+            <p><strong>Class:</strong> <span id="classLevel">-</span></p>
+            <p><strong>Stream:</strong> <span id="stream">-</span></p>
+          </section>
+
+          <section style="margin-bottom:18px;">
+            <h3>Parent / Guardian</h3>
+            <p><strong>Name:</strong> <span id="parentName">-</span></p>
+            <p><strong>Email:</strong> <span id="parentEmail">-</span></p>
+            <p><strong>Phone:</strong> <span id="parentPhone">-</span></p>
+          </section>
+
+          <section style="margin-bottom:18px;">
+            <h3>Fees</h3>
+            <p><strong>Total Billed:</strong> <span id="totalBilled">0</span></p>
+            <p><strong>Total Paid:</strong> <span id="totalPaid">0</span></p>
+            <p><strong>Balance:</strong> <span id="balance">0</span></p>
+            <div id="recentBills"></div>
+            <div id="recentPayments"></div>
+          </section>
+
+          <section>
+            <h3>Recent Results</h3>
+            <div id="resultsList">Loading results...</div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (!localStorage.getItem('token')) window.location.href = '/admin/login.html';
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = '/admin/login.html';
+    });
+    document.getElementById('backBtn').addEventListener('click', () => history.back());
+  </script>
+  <script src="/admin/student-profile.js"></script>
+</body>
+</html>
