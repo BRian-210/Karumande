@@ -139,7 +139,43 @@ async function openFeesEditor(studentId, studentName) {
     const bill = bills[0];
 
     if (!bill) {
-      alert('No fee bill found for this student. Create or generate a bill first.');
+      // Try to auto-generate a bill from the fee structure for the student's class
+      // First fetch the student to get classLevel
+      const studentRes = await fetch(`/api/students/${encodeURIComponent(studentId)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!studentRes.ok) throw new Error('Failed to load student details');
+      const studentPayload = await studentRes.json();
+      const student = studentPayload.data || studentPayload;
+      const classLevel = student.classLevel;
+
+      // Fetch fee structures and find matching classLevel (pick latest by createdAt)
+      const fsRes = await fetch('/api/fee-structures', { headers: { Authorization: `Bearer ${token}` } });
+      if (!fsRes.ok) throw new Error('Failed to load fee structures');
+      const feeStructures = await fsRes.json();
+      const matches = (feeStructures || []).filter(f => f.classLevel === classLevel);
+      if (!matches.length) {
+        alert('No fee structure found for this student\'s class. Create one first.');
+        return;
+      }
+      // Pick the most recent structure
+      matches.sort((a, b) => new Date(b.createdAt || b.updatedAt || Date.now()) - new Date(a.createdAt || a.updatedAt || Date.now()));
+      const structure = matches[0];
+
+      if (!confirm(`No bill found. Create a new bill for ${studentName} using fee structure ${structure.term} (${structure.amount})?`)) return;
+
+      // Create bill
+      const createRes = await fetch('/api/bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ studentId, term: structure.term, amount: structure.amount, description: structure.description || 'Tuition' })
+      });
+      const created = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) throw new Error(created.message || 'Failed to create bill');
+
+      alert('Bill created successfully. You can now edit or apply payments.');
+      // Reload students list to reflect changes
+      await loadStudents(elements.search?.value?.trim() || '');
       return;
     }
 

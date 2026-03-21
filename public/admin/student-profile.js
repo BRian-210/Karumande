@@ -9,6 +9,8 @@
     return;
   }
 
+  let student; // Declare here to make it accessible
+
   try {
     const res = await fetch(`/api/students/dashboard/${encodeURIComponent(id)}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -17,7 +19,8 @@
     const payload = await res.json();
     if (!payload.success) throw new Error(payload.message || 'No data');
 
-    const s = payload.student;
+    student = payload.student; // Assign here
+    const s = student;
     document.getElementById('studentName').textContent = s.name || 'Student';
     document.getElementById('admissionNumber').textContent = s.admissionNumber || 'N/A';
     document.getElementById('classLevel').textContent = s.classLevel || 'N/A';
@@ -86,4 +89,46 @@
     document.getElementById('studentName').textContent = 'Failed to load student';
     document.getElementById('resultsList').textContent = err.message;
   }
+
+  // Add create bill button handler if student loaded
+  if (student) {
+    document.getElementById('createBillBtn').addEventListener('click', async () => {
+      await createBillForStudent(id, student.name);
+    });
+  }
 })();
+
+async function createBillForStudent(studentId, studentName) {
+  try {
+    // Fetch fee structures and find matching classLevel
+    const fsRes = await fetch('/api/fee-structures', { headers: { Authorization: token } });
+    if (!fsRes.ok) throw new Error('Failed to load fee structures');
+    const feeStructures = await fsRes.json();
+    const matches = (feeStructures || []).filter(f => f.classLevel === student.classLevel);
+    if (!matches.length) {
+      alert('No fee structure found for this student\'s class. Create one first.');
+      return;
+    }
+    // Pick the most recent structure
+    matches.sort((a, b) => new Date(b.createdAt || b.updatedAt || Date.now()) - new Date(a.createdAt || a.updatedAt || Date.now()));
+    const structure = matches[0];
+
+    if (!confirm(`Create a new bill for ${studentName} using fee structure ${structure.term} (${structure.amount})?`)) return;
+
+    // Create bill
+    const createRes = await fetch('/api/bills', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: token },
+      body: JSON.stringify({ studentId, term: structure.term, amount: structure.amount, description: structure.description || 'Tuition' })
+    });
+    const created = await createRes.json().catch(() => ({}));
+    if (!createRes.ok) throw new Error(created.message || 'Failed to create bill');
+
+    alert('Bill created successfully.');
+    // Reload the page to refresh fees data
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
+}

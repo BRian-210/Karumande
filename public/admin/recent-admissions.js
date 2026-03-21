@@ -62,7 +62,7 @@ async function loadRecent(){
         <td>${fmtDate(created)}</td>
         <td><span class="status ${status}">${status}</span></td>
         <td class="actions">
-          ${a.student && a.student._id ? `<a href="/admin/students.html?id=${a.student._id}">View Student</a>` : '<span class="small">-</span>'}
+          ${a.student && a.student._id ? `<a href="/admin/student-profile.html?id=${a.student._id}">View Student</a>` : '<span class="small">-</span>'}
         </td>
       `;
       body.appendChild(tr);
