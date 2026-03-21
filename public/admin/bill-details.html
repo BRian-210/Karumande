@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Bill | Admin</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body class="admin-page">
+  <header class="topbar">
+    <button class="mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
+    <h1><i class="fa-solid fa-file-invoice-dollar"></i> <span id="pageTitle">Create Bill</span></h1>
+    <div class="topbar-actions">
+      <button class="btn" id="backBtn">Back</button>
+      <button class="btn" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="https://via.placeholder.com/60/0d47a1/ffffff?text=KL" alt="School Logo" />
+        <h3>Karumande Link School</h3>
+        <p>Administration Panel</p>
+      </div>
+      <nav>
+        <a href="/admin/dashboard.html"><i class="fa-solid fa-home"></i> Dashboard</a>
+        <a href="/admin/students.html"><i class="fa-solid fa-users"></i> Students</a>
+        <a href="/admin/fees.html"><i class="fa-solid fa-money-bill-wave"></i> Fees</a>
+      </nav>
+    </aside>
+    <main class="content">
+      <div class="card">
+        <div class="card-header">
+          <h2 id="studentName">Loading...</h2>
+          <div id="studentMeta"></div>
+        </div>
+        <div class="card-body">
+          <form id="billForm">
+            <p><strong>Admission No:</strong> <span id="admissionNumber">-</span></p>
+            <p><strong>Class:</strong> <span id="classLevel">-</span></p>
+            <p><strong>Term:</strong> <span id="term">-</span></p>
+            <label>Amount to Pay: <input type="number" id="amount" required min="0" /></label>
+            <label>Description: <input type="text" id="description" /></label>
+            <button type="submit" class="btn" id="submitBtn">Create Bill</button>
+          </form>
+          <div id="billStatus"></div>
+          <div id="billView" style="display:none;">
+            <h3>Bill Details</h3>
+            <p><strong>Amount Paid:</strong> <span id="amountPaid">0</span></p>
+            <p><strong>Balance:</strong> <span id="balance">0</span></p>
+            <p><strong>Status:</strong> <span id="status">-</span></p>
+            <h4>Recent Payments</h4>
+            <div id="paymentsList">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/admin/bill-details.js"></script>
+</body>
+</html>

@@ -8,6 +8,22 @@ const { stkPush, isIpAllowed, normalizePhone, validateSignature } = require('../
 
 const router = express.Router();
 
+router.get('/', requireAuth, async (req, res) => {
+  const { page, limit, skip } = require('../constants/school').validatePagination(req.query);
+  let filter = {};
+  if (req.query.studentId) filter.student = req.query.studentId;
+  if (req.query.billId) filter.bill = req.query.billId;
+  if (req.user.role === 'parent') {
+    const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
+    filter.student = { $in: studentIds };
+  }
+  const [items, total] = await Promise.all([
+    Payment.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Payment.countDocuments(filter)
+  ]);
+  return res.json({ data: items, page, limit, total });
+});
+
 router.post(
   '/initiate',
   requireAuth,

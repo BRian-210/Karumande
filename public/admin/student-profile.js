@@ -47,7 +47,7 @@
       const ul = document.createElement('ul');
       bills.forEach(b => {
         const li = document.createElement('li');
-        li.textContent = `${b.term || ''} - ${b.description || ''}: amount ${b.amount} paid ${b.amountPaid} balance ${b.balance}`;
+        li.innerHTML = `${b.term || ''} - ${b.description || ''}: amount ${b.amount} paid ${b.amountPaid} balance ${b.balance} <a href="/admin/bill-details.html?studentId=${id}&billId=${b.id}">View/Edit</a>`;
         ul.appendChild(li);
       });
       billsEl.appendChild(ul);
@@ -92,8 +92,8 @@
 
   // Add create bill button handler if student loaded
   if (student) {
-    document.getElementById('createBillBtn').addEventListener('click', async () => {
-      await createBillForStudent(id, student.name);
+    document.getElementById('createBillBtn').addEventListener('click', () => {
+      window.location.href = `/admin/bill-details.html?studentId=${id}`;
     });
   }
 })();
