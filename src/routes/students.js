@@ -61,7 +61,7 @@ router.get(
 );
 
 // Summary counts for admin dashboard
-router.get('/summary', requireAuth, async (req, res) => {
+router.get('/summary', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
   const now = new Date();
   const year = now.getFullYear();
   const startOfYear = new Date(Date.UTC(year, 0, 1));
@@ -85,7 +85,7 @@ router.get('/summary', requireAuth, async (req, res) => {
 });
 
 // Learners by grade breakdown for dashboard table
-router.get('/by-grade', requireAuth, async (req, res) => {
+router.get('/by-grade', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
   const rows = await Student.aggregate([
     { $match: { active: true } },
     { $group: { _id: { classLevel: '$classLevel', gender: '$gender' }, count: { $sum: 1 } } },
