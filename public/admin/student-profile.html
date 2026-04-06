@@ -71,15 +71,6 @@
       </div>
     </main>
   </div>
-
-  <script>
-    if (!localStorage.getItem('token')) window.location.href = '/admin/login.html';
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('token');
-      window.location.href = '/admin/login.html';
-    });
-    document.getElementById('backBtn').addEventListener('click', () => history.back());
-  </script>
   <script src="/admin/student-profile.js"></script>
 </body>
 </html>
