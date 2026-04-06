@@ -424,12 +424,12 @@ html, body {
       background: #f4f6f9;
       margin: 0;
     }
-    header {
+    header.admin-header {
       background: #111827;
       color: #fff;
       padding: 15px;
     }
-    header button {
+    header.admin-header button {
       float: right;
       background: red;
       color: white;
