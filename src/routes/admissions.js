@@ -158,7 +158,7 @@ router.post(
             <p><strong>Parent:</strong> ${admission.parentName} (${admission.email})</p>
             <p><strong>Phone:</strong> ${admission.phone}</p>
             <p><strong>Class:</strong> ${admission.classApplied}</p>
-            <p><a href="${process.env.ADMIN_DASHBOARD_URL}/admissions.html">View in Admin Panel</a></p>
+            <p><a href="${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/admin/login.html">View in Admin Panel</a></p>
           `,
         });
         if (emailResult && emailResult.success === false) {
@@ -344,6 +344,22 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
           });
 
           await parentUser.save();
+
+          if (admission.phone) {
+            try {
+              let phone = admission.phone.trim();
+              if (phone.startsWith('0')) {
+                phone = `+254${phone.slice(1)}`;
+              }
+
+              await sendSMS({
+                to: phone,
+                message: `Karumande Link School: Your application for ${admission.studentName} has been approved. Login Email: ${parentUser.email}. Temporary password: ${createdTempPassword}. Please change it on first login. ${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/login`,
+              });
+            } catch (smsErr) {
+              console.warn('Parent approval SMS failed:', smsErr?.message || smsErr);
+            }
+          }
         }
 
         // Normalize class level to allowed values and create student record with parent linked
@@ -390,11 +406,9 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
           <p>Dear ${admission.parentName},</p>
           <p>Congratulations — your application for <strong>${admission.studentName}</strong> has been approved.</p>
           <p><strong>Admission Number:</strong> ${admissionNumber}</p>
-          ${createdTempPassword ? `<p>An account has been created for you to access the parent portal:</p>
-            <ul>
-              <li><strong>Email:</strong> ${parentUser.email}</li>
-              <li><strong>Temporary password:</strong> <code>${createdTempPassword}</code></li>
-            </ul>
+          ${createdTempPassword ? `<p>An account has been created for you to access the parent portal.</p>
+            <p><strong>Login email:</strong> ${parentUser.email}</p>
+            <p><strong>Temporary password:</strong> <code>${createdTempPassword}</code></p>
             <p>For security, you will be required to change your password on first login.</p>` : `<p>You can access your account with your existing credentials.</p>`}
           <p>Visit the portal to complete registration and view next steps: <a href="${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}">${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}</a></p>
           <p>Thank you,<br/>Karumande Link School</p>
