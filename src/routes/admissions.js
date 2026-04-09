@@ -85,7 +85,7 @@ router.post(
       // Notify admin
       try {
         const emailResult = await sendEmail({
-          to: process.env.ADMIN_EMAIL || 'admin@karumande.sc.ke',
+          to: process.env.ADMIN_EMAIL || 'githinjibriank973@gmail.com',
           subject: 'New Admission Application - Action Required',
           html: `
             <h2>New Admission Application</h2>
