@@ -2,17 +2,18 @@
 const AfricasTalking = require('africastalking');
 
 /**
- * Africa's Talking client instance
- * Initialized once and reused across requests
+ * Initialize Africa's Talking client with better logging
  */
 const initializeClient = () => {
   const apiKey = process.env.AT_API_KEY?.trim();
   const username = process.env.AT_USERNAME?.trim();
 
   if (!apiKey || !username) {
-    console.warn("Africa's Talking credentials missing: AT_API_KEY and/or AT_USERNAME not set. SMS sending is disabled.");
+    console.error("❌ Africa's Talking credentials missing. Set AT_API_KEY and AT_USERNAME in .env");
     return null;
   }
+
+  console.log(`🔄 Initializing Africa's Talking SMS - Username: ${username} | Environment: ${username === 'sandbox' ? 'SANDBOX' : 'PRODUCTION'}`);
 
   return AfricasTalking({
     apiKey,
@@ -24,26 +25,18 @@ const atClient = initializeClient();
 const smsClient = atClient ? atClient.SMS : null;
 
 /**
- * Sends an SMS via Africa's Talking
- * @param {Object} options
- * @param {string} options.to - Recipient phone number(s) in international format (e.g., +2547xxxxxxxx)
- * @param {string} options.message - Message content (max 160 characters for single SMS)
- * @param {string} [options.from='KARUMANDE'] - Optional sender ID (must be approved by Africa's Talking)
- * @returns {Promise<Object>} Africa's Talking API response
- * @throws {Error} If sending fails or inputs are invalid
+ * Send SMS via Africa's Talking
  */
 const sendSMS = async ({ to, message, from = 'KARUMANDE' }) => {
-  // Basic input validation
   if (!to || typeof to !== 'string') {
-    throw new Error('Valid recipient phone number(s) required');
+    throw new Error('Recipient phone number is required');
   }
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
-    throw new Error('Message content is required and cannot be empty');
+    throw new Error('Message content is required');
   }
 
-  const cleanedMessage = message.trim();
-  const recipients = to.split(',').map(num => num.trim()).filter(num => num);
+  const recipients = to.split(',').map(num => num.trim()).filter(Boolean);
 
   if (recipients.length === 0) {
     throw new Error('No valid phone numbers provided');
@@ -51,50 +44,46 @@ const sendSMS = async ({ to, message, from = 'KARUMANDE' }) => {
 
   const options = {
     to: recipients,
-    message: cleanedMessage,
+    message: message.trim(),
     from: from.trim(),
   };
 
   if (!smsClient) {
-    const msg = "SMS client not configured; skipping SMS send";
-    console.warn(msg, { to: recipients });
-    return { success: false, error: msg };
+    console.warn("⚠️ SMS client not initialized. Skipping SMS.");
+    return { success: false, error: "SMS service not configured" };
   }
 
   try {
     const response = await smsClient.send(options);
 
-    console.log('SMS sent successfully:', {
-      recipients: options.to,
-      messageLength: cleanedMessage.length,
-      senderId: options.from,
-      response: response, // Contains SMSMessageData with status per recipient
+    console.log('✅ SMS sent successfully:', {
+      recipients,
+      sender: options.from,
+      messageLength: options.message.length,
+      response: response.SMSMessageData
     });
 
     return { success: true, response };
   } catch (error) {
-    console.error('Failed to send SMS:', {
-      recipients: options.to,
+    console.error('❌ Failed to send SMS:', {
+      recipients,
       errorCode: error.code,
       errorMessage: error.message,
-      statusCode: error.statusCode,
+      statusCode: error.statusCode || error.response?.status,
+      fullError: error
     });
 
-    // Return error but do not throw so notification failures don't block main flow
-    return { success: false, error: error.message || 'Unknown error' };
+    // Provide more helpful message for 401
+    if (error.statusCode === 401 || error.code === 401) {
+      console.error("🔑 401 Unauthorized - Check your AT_API_KEY and AT_USERNAME. Make sure you are using PRODUCTION credentials (not Sandbox).");
+    }
+
+    return { 
+      success: false, 
+      error: error.message || 'SMS sending failed',
+      code: error.statusCode || error.code 
+    };
   }
 };
-
-// Optional: Validate credentials on startup
-if (process.env.NODE_ENV !== 'test') {
-  try {
-    // Africa's Talking doesn't have a direct "verify" endpoint,
-    // but we can log readiness
-    console.log('Africa\'s Talking SMS client initialized');
-    console.log('Sender ID:', 'KARUMANDE');
-  } catch (err) {
-    console.error('Africa\'s Talking initialization failed:', err.message);
-  }
-}
 
 module.exports = sendSMS;
