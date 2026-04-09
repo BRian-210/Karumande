@@ -110,7 +110,7 @@ function generateParentWelcomeEmail({
         <strong>Security Notice:</strong> For your safety, please change your password immediately after logging in for the first time.
       </div>
 
-      <p><a href="${process.env.FRONTEND_URL || 'https://your-school-portal.com'}/login" style="background-color: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 10px 0;">
+      <p><a href="${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/login" style="background-color: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 10px 0;">
         Log In to Parent Portal
       </a></p>
 

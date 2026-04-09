@@ -82,6 +82,71 @@ router.post(
 
       const admission = await Admission.create(data);
 
+      // Create parent user for new admission if needed
+      let createdTempPassword = null;
+      if (admission.email) {
+        let parentUser = await User.findOne({ email: admission.email.toLowerCase() });
+
+        if (!parentUser) {
+          const generateTempPassword = () => {
+            const raw = crypto.randomBytes(6).toString('base64url');
+            return `KL${raw}`; // prefix for clarity
+          };
+
+          createdTempPassword = generateTempPassword();
+
+          parentUser = await User.create({
+            name: admission.parentName || admission.email,
+            email: admission.email.toLowerCase(),
+            phone: admission.phone || undefined,
+            passwordHash: createdTempPassword,
+            role: 'parent',
+            mustChangePassword: true,
+            children: [],
+          });
+
+          // Notify parent about their temporary login credentials
+          try {
+            await sendEmail({
+              to: parentUser.email,
+              subject: 'Your Karumande Parent Portal Account',
+              html: `
+                <h2>Welcome to Karumande Link School</h2>
+                <p>Dear ${parentUser.name},</p>
+                <p>Thank you for submitting a new admission application for <strong>${admission.studentName}</strong>.</p>
+                <p>We have created a temporary parent portal account for you so you can follow the admission progress and log in once the application is reviewed.</p>
+                <p><strong>Login details</strong></p>
+                <ul>
+                  <li><strong>Email:</strong> ${parentUser.email}</li>
+                  <li><strong>Temporary password:</strong> <code>${createdTempPassword}</code></li>
+                </ul>
+                <p>For security, you will need to change your password on first login.</p>
+                <p>Login here: <a href="${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/login">${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/login</a></p>
+                <p>Thank you,<br/>Karumande Link School</p>
+              `,
+            });
+          } catch (notifyParentErr) {
+            console.warn('Parent account email failed:', notifyParentErr?.message || notifyParentErr);
+          }
+
+          if (admission.phone) {
+            try {
+              let parentPhone = admission.phone.trim();
+              if (parentPhone.startsWith('0')) {
+                parentPhone = `+254${parentPhone.slice(1)}`;
+              }
+
+              await sendSMS({
+                to: parentPhone,
+                message: `Karumande: ${parentUser.name}, your parent portal account has been created. Login email: ${parentUser.email}. Temporary password: ${createdTempPassword}. Please change it on first login.`,
+              });
+            } catch (smsErr) {
+              console.warn('Parent account SMS failed:', smsErr?.message || smsErr);
+            }
+          }
+        }
+      }
+
       // Notify admin
       try {
         const emailResult = await sendEmail({
@@ -331,7 +396,7 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
               <li><strong>Temporary password:</strong> <code>${createdTempPassword}</code></li>
             </ul>
             <p>For security, you will be required to change your password on first login.</p>` : `<p>You can access your account with your existing credentials.</p>`}
-          <p>Visit the portal to complete registration and view next steps: <a href="${process.env.FRONTEND_URL}">${process.env.FRONTEND_URL}</a></p>
+          <p>Visit the portal to complete registration and view next steps: <a href="${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}">${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}</a></p>
           <p>Thank you,<br/>Karumande Link School</p>
         `;
 

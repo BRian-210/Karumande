@@ -25,7 +25,7 @@ Temp Password: ${safePassword}
 
 Please change your password immediately after logging in.
 
-Login: ${process.env.FRONTEND_URL || 'school-portal.com'}`;
+Login: ${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}`;
 }
 
 module.exports = { generateParentSMS };
