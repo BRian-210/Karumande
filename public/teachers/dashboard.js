@@ -10,8 +10,22 @@ if (!token) {
   window.location.href = '/teachers/login.html';
 }
 
-// Subjects shown in the marksheet (labels match your Excel-style view; names saved in DB)
-const SUBJECTS = [
+// Subject lists by class level
+const EARLY_CHILDHOOD_SUBJECTS = [
+  { name: 'Mathematical Activities', label: 'Math Activities', defaultMax: 100 },
+  { name: 'English', label: 'English', defaultMax: 100 },
+  { name: 'Reading', label: 'Reading', defaultMax: 100 },
+  { name: 'Listening and Speaking', label: 'Listening & Speaking', defaultMax: 100 },
+  { name: 'Kiswahili', label: 'Kiswahili', defaultMax: 100 },
+  { name: 'Kusoma', label: 'Kusoma', defaultMax: 100 },
+  { name: 'Kusikiliza na kuzungumza', label: 'Kusikiliza & Kuzungumza', defaultMax: 100 },
+  { name: 'Environmental', label: 'Environmental', defaultMax: 100 },
+  { name: 'Religious Activities', label: 'Religious Activities', defaultMax: 100 },
+  { name: 'Psychomotor', label: 'Psychomotor', defaultMax: 100 },
+  { name: 'Creative Arts', label: 'Creative Arts', defaultMax: 100 }
+];
+
+const PRIMARY_SUBJECTS = [
   { name: 'Mathematics', label: 'Math', defaultMax: 100 },
   { name: 'English', label: 'ENG', defaultMax: 100 },
   { name: 'Kiswahili', label: 'KISW', defaultMax: 100 },
@@ -22,6 +36,15 @@ const SUBJECTS = [
   { name: 'CRE / IRE', label: 'CRE', defaultMax: 100 },
   { name: 'Art & Craft', label: 'CAS', defaultMax: 110 }
 ];
+
+// Get subjects by class level
+function getSubjectsByClass(classLevel) {
+  if (!classLevel) return PRIMARY_SUBJECTS;
+  const earlyChildhoodClasses = ['Playgroup A',  'PP1 X', 'PP1 Y', 'PP2 X', 'PP2 Y'];
+  return earlyChildhoodClasses.includes(classLevel) ? EARLY_CHILDHOOD_SUBJECTS : PRIMARY_SUBJECTS;
+}
+
+const SUBJECTS = PRIMARY_SUBJECTS; // default
 
 const elements = {
   classSelect: document.getElementById('classSelect'),
@@ -214,7 +237,7 @@ elements.loadBtn?.addEventListener('click', async () => {
       const globalDueDate = relevantDueDates.find(dd => !dd.classLevel && !dd.subject);
       if (globalDueDate && new Date(globalDueDate.dueDate) < now) {
         isPastDueDate = true;
-        lockedSubjects = new Set(SUBJECTS.map(s => s.name));
+        lockedSubjects = new Set(getSubjectsByClass(cls).map(s => s.name));
         showMessage(
           `⚠️ Submission deadline has passed for all classes (${new Date(globalDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
           'error'
@@ -224,7 +247,7 @@ elements.loadBtn?.addEventListener('click', async () => {
         const classDueDate = relevantDueDates.find(dd => dd.classLevel === cls && !dd.subject);
         if (classDueDate && new Date(classDueDate.dueDate) < now) {
           isPastDueDate = true;
-          lockedSubjects = new Set(SUBJECTS.map(s => s.name));
+          lockedSubjects = new Set(getSubjectsByClass(cls).map(s => s.name));
           showMessage(
             `⚠️ Submission deadline has passed for ${cls} (${new Date(classDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
             'error'
@@ -325,10 +348,13 @@ elements.loadBtn?.addEventListener('click', async () => {
 function renderTable(className, term) {
   elements.classTitle.textContent = `${className} — ${term} ${CURRENT_YEAR} Results`;
 
+  // Get subjects for this class
+  const classSubjects = getSubjectsByClass(className);
+
   // Header row (subjects + total + position)
   elements.headerRow.innerHTML = `
     <th style="min-width:220px;">NAMES</th>
-    ${SUBJECTS.map(s => `<th style="min-width:90px;text-align:center;">${s.label}</th>`).join('')}
+    ${classSubjects.map(s => `<th style="min-width:90px;text-align:center;">${s.label}</th>`).join('')}
     <th style="min-width:90px;text-align:center;">TOTAL</th>
     <th style="min-width:110px;text-align:center;">POSITION</th>
   `;
@@ -336,7 +362,7 @@ function renderTable(className, term) {
   // Out-of row (max score per subject)
   elements.outOfRow.innerHTML = `
     <th>OUT OF</th>
-    ${SUBJECTS.map(s => {
+    ${classSubjects.map(s => {
       const disabled = isPastDueDate ? 'disabled' : '';
       return `<th style="text-align:center;">
         <input class="outof-input" data-subject="${s.name}" type="number" min="1" max="1000" value="${s.defaultMax}" style="width:80px;text-align:center;" ${disabled}/>
@@ -355,7 +381,7 @@ function renderTable(className, term) {
     return `
       <tr data-student-row="${student._id}">
         <td style="font-weight:600;">${student.name}</td>
-        ${SUBJECTS.map(s => {
+        ${classSubjects.map(s => {
           const existing = existingMap.get(s.name);
           const val = existing?.score ?? '';
           const maxVal = existing?.maxScore ?? s.defaultMax;
