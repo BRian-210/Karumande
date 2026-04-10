@@ -73,26 +73,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const submitBtn = contactForm.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
 
-      // Loading state
+      const formData = new FormData(contactForm);
+      const body = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        message: formData.get('message'),
+      };
+
       submitBtn.disabled = true;
       submitBtn.innerHTML = 'Sending... <i class="fa-solid fa-spinner fa-spin"></i>';
 
       try {
-        // TODO: Replace with real backend endpoint when ready
-        // const response = await fetch('/api/contact', {
-        //   method: 'POST',
-        //   body: new FormData(contactForm)
-        // });
-        // if (!response.ok) throw new Error('Network error');
+        const response = await fetch(contactForm.action, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
 
-        // Simulated success (remove in production)
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to send message');
+        }
 
-        alert('Thank you! Your message has been sent successfully. We’ll get back to you soon.');
+        alert(result.message || 'Thank you! Your message has been sent successfully. We’ll get back to you soon.');
         contactForm.reset();
       } catch (error) {
         console.error('Contact form error:', error);
-        alert('Sorry, there was a problem sending your message. Please try again or email us directly at karumandelinkschool@gmail.com');
+        alert('Sorry, there was a problem sending your message. Please try again or email us directly at githinjibriank973@gmail.com');
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;

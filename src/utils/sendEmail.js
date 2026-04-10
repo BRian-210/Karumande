@@ -26,7 +26,7 @@ const createTransporter = () => {
 // Create transporter once (reused across requests)
 const transporter = createTransporter();
 
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, replyTo }) => {
   if (!to || !subject || !html) {
     const err = 'Missing required email fields: to, subject, or html';
     console.warn('Email not sent:', err);
@@ -48,6 +48,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     subject: subject.trim(),
     html: html.trim(),
     text: text?.trim(),
+    ...(replyTo ? { replyTo: replyTo.trim() } : {}),
   };
 
   try {

@@ -25,6 +25,7 @@ const admissionRoutes = require('./src/routes/admissions');
 const teachersRoutes = require('./src/routes/teachers');
 const settingsRoutes = require('./src/routes/settings');
 const galleryRoutes = require('./src/routes/gallery');
+const contactRoutes = require('./src/routes/contact');
 const feeBalanceRoutes = require('./src/routes/feeBalances');
 
 // Middleware
@@ -118,6 +119,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admissions', admissionRoutes); // Public submission
 app.use('/api/announcements', announcementRoutes); // Public announcements view
 app.use('/api/gallery', galleryRoutes); // Public gallery view
+app.use('/submit-form', contactRoutes); // Website contact form submissions
 
 // ========================
 // Payment Webhook
