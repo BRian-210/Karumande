@@ -40,7 +40,7 @@ const PRIMARY_SUBJECTS = [
 // Get subjects by class level
 function getSubjectsByClass(classLevel) {
   if (!classLevel) return PRIMARY_SUBJECTS;
-  const earlyChildhoodClasses = ['Playgroup A', 'PP1', 'PP2'];
+  const earlyChildhoodClasses = ['Playgroup ', 'PP1', 'PP2'];
   return earlyChildhoodClasses.includes(classLevel) ? EARLY_CHILDHOOD_SUBJECTS : PRIMARY_SUBJECTS;
 }
 
