@@ -2,8 +2,17 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 async function requireAuth(req, res, next) {
+  // Check Authorization header first
+  let token = null;
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  }
+
+  // Fallback to query param (for file downloads)
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'Missing token' });

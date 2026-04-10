@@ -88,7 +88,8 @@
 
   <script>
     // Protect page
-    if (!localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       window.location.href = '/login.html';
     }
 
@@ -124,6 +125,9 @@
       if (termSelect && termSelect.value) {
         url += (url.includes('?') ? '&' : '?') + `term=${encodeURIComponent(termSelect.value)}`;
       }
+
+      // Add auth token as query param for file downloads
+      url += (url.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`;
 
       window.open(url, '_blank');
     }
