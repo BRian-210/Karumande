@@ -54,7 +54,9 @@ app.use(
         'style-src-attr': ["'self'", "'unsafe-inline'"] ,
         // Allow font files from Google and CDNJS (Font Awesome webfonts)
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-        scriptSrc: ["'self'"], // Only external scripts (public/script.js)
+        // Allow inline scripts and event handlers (onclick, etc.) on admin pages
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        'script-src-attr': ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
         connectSrc: ["'self'"],
         frameSrc: ["'self'", "https://www.google.com"],

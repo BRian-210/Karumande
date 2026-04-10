@@ -25,30 +25,61 @@
       <div class="card">
         <h3>Admissions Report</h3>
         <p>View pending, approved, and rejected admissions.</p>
+        <div class="form-row">
+          <select id="admissionsClass">
+            <option value="">All Classes</option>
+          </select>
+        </div>
         <button onclick="generateReport('admissions')">Generate</button>
       </div>
 
       <div class="card">
         <h3>Students Report</h3>
         <p>Total students per class and gender.</p>
+        <div class="form-row">
+          <select id="studentsClass">
+            <option value="">All Classes</option>
+          </select>
+        </div>
         <button onclick="generateReport('students')">Generate</button>
       </div>
 
       <div class="card">
         <h3>Fees Report</h3>
         <p>Fees billed, paid, and balances.</p>
+        <div class="form-row">
+          <select id="feesClass">
+            <option value="">All Classes</option>
+          </select>
+        </div>
         <button onclick="generateReport('fees')">Generate</button>
       </div>
 
       <div class="card">
         <h3>Payments Report</h3>
         <p>All MPESA and cash payments.</p>
+        <div class="form-row">
+          <select id="paymentsClass">
+            <option value="">All Classes</option>
+          </select>
+        </div>
         <button onclick="generateReport('payments')">Generate</button>
       </div>
 
       <div class="card">
         <h3>Results Report</h3>
         <p>Academic performance by term and class.</p>
+        <div class="form-row">
+          <select id="resultsClass">
+            <option value="">All Classes</option>
+          </select>
+          <select id="resultsTerm">
+            <option value="">All Terms</option>
+            <option value="Term 1">Term 1</option>
+            <option value="Term 2">Term 2</option>
+            <option value="Term 3">Term 3</option>
+          </select>
+        </div>
         <button onclick="generateReport('results')">Generate</button>
       </div>
 
@@ -61,8 +92,40 @@
       window.location.href = '/login.html';
     }
 
+    const CLASSES = ['Playgroup A', 'Playgroup B', 'PP1', 'PP2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9'];
+
+    // Populate class dropdowns
+    function populateClassSelects() {
+      const selects = ['admissionsClass', 'studentsClass', 'feesClass', 'paymentsClass', 'resultsClass'];
+      selects.forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+          CLASSES.forEach(cls => {
+            const option = document.createElement('option');
+            option.value = cls;
+            option.textContent = cls;
+            select.appendChild(option);
+          });
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', populateClassSelects);
+
     function generateReport(type) {
-      window.open(`/api/reports/${type}`, '_blank');
+      let url = `/api/reports/${type}`;
+      let classSelect = document.getElementById(`${type}Class`);
+      let termSelect = document.getElementById(`${type}Term`);
+
+      if (classSelect && classSelect.value) {
+        url += `?classLevel=${encodeURIComponent(classSelect.value)}`;
+      }
+
+      if (termSelect && termSelect.value) {
+        url += (url.includes('?') ? '&' : '?') + `term=${encodeURIComponent(termSelect.value)}`;
+      }
+
+      window.open(url, '_blank');
     }
 
     function logout() {

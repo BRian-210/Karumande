@@ -5,6 +5,7 @@ const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
 const Result = require('../models/Result');
+const Admission = require('../models/Admission');
 const SiteConfig = require('../models/SiteConfig');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const path = require('path');
@@ -197,6 +198,255 @@ router.get('/class/:classLevel/:term', requireAuth, requireRole('admin', 'teache
 });
 
 // PDF: generate a multi-student report for the class (one page per student)
+router.get('/admissions', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
+  try {
+    const { classLevel } = req.query;
+    const Admission = require('../models/Admission');
+    let query = {};
+    if (classLevel) query.classApplied = classLevel;
+
+    const admissions = await Admission.find(query).sort('-submittedAt').lean();
+
+    // Group by status
+    const byStatus = { pending: 0, approved: 0, rejected: 0 };
+    admissions.forEach(a => {
+      const status = a.status?.toLowerCase() || 'pending';
+      byStatus[status] = (byStatus[status] || 0) + 1;
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Admissions');
+    ws.columns = [
+      { header: 'Student Name', key: 'studentName', width: 24 },
+      { header: 'Parent Name', key: 'parentName', width: 24 },
+      { header: 'Email', key: 'email', width: 24 },
+      { header: 'Class Applied', key: 'classApplied', width: 16 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Submitted', key: 'submittedAt', width: 20 }
+    ];
+
+    admissions.forEach(a => {
+      ws.addRow({
+        studentName: a.studentName,
+        parentName: a.parentName,
+        email: a.email,
+        classApplied: a.classApplied,
+        status: a.status,
+        submittedAt: new Date(a.submittedAt).toLocaleDateString()
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="admissions.xlsx"');
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('admissions report error:', err.message);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/students', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
+  try {
+    const { classLevel } = req.query;
+    let query = { active: true };
+    if (classLevel) query.classLevel = classLevel;
+
+    const students = await Student.find(query).lean();
+
+    // Count by gender
+    const byClass = {};
+    students.forEach(s => {
+      const cls = s.classLevel || 'Unassigned';
+      byClass[cls] = byClass[cls] || { total: 0, male: 0, female: 0, other: 0 };
+      byClass[cls].total++;
+      const gender = (s.gender || 'other').toLowerCase();
+      byClass[cls][gender === 'm' || gender === 'male' ? 'male' : gender === 'f' || gender === 'female' ? 'female' : 'other']++;
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Students');
+    ws.columns = [
+      { header: 'Class', key: 'class', width: 16 },
+      { header: 'Total', key: 'total', width: 10 },
+      { header: 'Male', key: 'male', width: 10 },
+      { header: 'Female', key: 'female', width: 10 },
+      { header: 'Other', key: 'other', width: 10 }
+    ];
+
+    Object.keys(byClass).sort().forEach(cls => {
+      const data = byClass[cls];
+      ws.addRow({
+        class: cls,
+        total: data.total,
+        male: data.male,
+        female: data.female,
+        other: data.other
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="students.xlsx"');
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('students report error:', err.message);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/fees', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
+  try {
+    const { classLevel } = req.query;
+    let billQuery = {};
+    if (classLevel) {
+      const students = await Student.find({ classLevel, active: true }).select('_id').lean();
+      billQuery.student = { $in: students.map(s => s._id) };
+    }
+
+    const bills = await Bill.find(billQuery).populate('student', 'name classLevel').lean();
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Fees');
+    ws.columns = [
+      { header: 'Student', key: 'student', width: 24 },
+      { header: 'Class', key: 'classLevel', width: 16 },
+      { header: 'Term', key: 'term', width: 12 },
+      { header: 'Amount', key: 'amount', width: 12 },
+      { header: 'Paid', key: 'amountPaid', width: 12 },
+      { header: 'Balance', key: 'balance', width: 12 },
+      { header: 'Status', key: 'status', width: 12 }
+    ];
+
+    bills.forEach(b => {
+      ws.addRow({
+        student: b.student?.name,
+        classLevel: b.student?.classLevel,
+        term: b.term,
+        amount: b.amount,
+        amountPaid: b.amountPaid,
+        balance: b.balance,
+        status: b.status
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="fees.xlsx"');
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('fees report error:', err.message);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/payments', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
+  try {
+    const { classLevel } = req.query;
+    let paymentQuery = {};
+    if (classLevel) {
+      const students = await Student.find({ classLevel, active: true }).select('_id').lean();
+      paymentQuery.student = { $in: students.map(s => s._id) };
+    }
+
+    const payments = await Payment.find(paymentQuery).populate('student', 'name classLevel').populate('bill', 'term').lean();
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Payments');
+    ws.columns = [
+      { header: 'Student', key: 'student', width: 24 },
+      { header: 'Class', key: 'classLevel', width: 16 },
+      { header: 'Term', key: 'term', width: 12 },
+      { header: 'Amount', key: 'amount', width: 12 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Transaction ID', key: 'transactionId', width: 20 },
+      { header: 'Date', key: 'updatedAt', width: 20 }
+    ];
+
+    payments.forEach(p => {
+      ws.addRow({
+        student: p.student?.name,
+        classLevel: p.student?.classLevel,
+        term: p.bill?.term,
+        amount: p.amount,
+        status: p.status,
+        transactionId: p.transactionId,
+        updatedAt: new Date(p.updatedAt).toLocaleDateString()
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="payments.xlsx"');
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('payments report error:', err.message);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/results', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
+  try {
+    const { classLevel, term } = req.query;
+    let studentQuery = { active: true };
+    if (classLevel) studentQuery.classLevel = classLevel;
+
+    const students = await Student.find(studentQuery).lean();
+    let resultQuery = {};
+    if (term) resultQuery.term = term;
+
+    let allResults = [];
+    for (const s of students) {
+      let query = { student: s._id, ...resultQuery };
+      const results = await Result.find(query).lean();
+      results.forEach(r => {
+        allResults.push({
+          student: s,
+          term: r.term,
+          subjects: r.subjects,
+          total: r.total,
+          maxTotal: r.maxTotal,
+          grade: r.grade,
+          comments: r.comments
+        });
+      });
+    }
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Results');
+    ws.columns = [
+      { header: 'Student', key: 'student', width: 24 },
+      { header: 'Class', key: 'classLevel', width: 16 },
+      { header: 'Term', key: 'term', width: 12 },
+      { header: 'Total Score', key: 'total', width: 12 },
+      { header: 'Max Score', key: 'maxTotal', width: 12 },
+      { header: 'Percent', key: 'percent', width: 10 },
+      { header: 'Grade', key: 'grade', width: 10 }
+    ];
+
+    allResults.forEach(r => {
+      const percent = r.maxTotal > 0 ? Math.round((r.total / r.maxTotal) * 100 * 100) / 100 : 0;
+      ws.addRow({
+        student: r.student.name,
+        classLevel: r.student.classLevel,
+        term: r.term,
+        total: r.total,
+        maxTotal: r.maxTotal,
+        percent: percent,
+        grade: r.grade
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="results.xlsx"');
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('results report error:', err.message);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
   try {
     const { classLevel, term } = req.params;
