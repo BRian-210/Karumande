@@ -414,19 +414,39 @@ router.get('/results', requireAuth, requireRole('admin', 'teacher'), async (req,
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Results');
-    ws.columns = [
+    
+    // Get all unique subjects from all results
+    const allSubjects = new Set();
+    allResults.forEach(r => {
+      r.subjects.forEach(s => allSubjects.add(s.name));
+    });
+    const subjectList = Array.from(allSubjects).sort();
+    
+    // Build columns: Student, Class, Term, [Subject1, Subject2, ...], Total, Max, Percent, Grade
+    const columns = [
       { header: 'Student', key: 'student', width: 24 },
       { header: 'Class', key: 'classLevel', width: 16 },
-      { header: 'Term', key: 'term', width: 12 },
+      { header: 'Term', key: 'term', width: 12 }
+    ];
+    
+    // Add subject columns
+    subjectList.forEach(subj => {
+      columns.push({ header: subj, key: `subj_${subj}`, width: 10 });
+    });
+    
+    // Add summary columns
+    columns.push(
       { header: 'Total Score', key: 'total', width: 12 },
       { header: 'Max Score', key: 'maxTotal', width: 12 },
       { header: 'Percent', key: 'percent', width: 10 },
       { header: 'Grade', key: 'grade', width: 10 }
-    ];
+    );
+    
+    ws.columns = columns;
 
     allResults.forEach(r => {
       const percent = r.maxTotal > 0 ? Math.round((r.total / r.maxTotal) * 100 * 100) / 100 : 0;
-      ws.addRow({
+      const row = {
         student: r.student.name,
         classLevel: r.student.classLevel,
         term: r.term,
@@ -434,7 +454,15 @@ router.get('/results', requireAuth, requireRole('admin', 'teacher'), async (req,
         maxTotal: r.maxTotal,
         percent: percent,
         grade: r.grade
+      };
+      
+      // Fill in subject scores
+      subjectList.forEach(subj => {
+        const subjectData = r.subjects.find(s => s.name === subj);
+        row[`subj_${subj}`] = subjectData ? `${subjectData.score}/${subjectData.maxScore || 100}` : '-';
       });
+      
+      ws.addRow(row);
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
