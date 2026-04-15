@@ -32,6 +32,12 @@ const createTransporter = () => {
 // Create transporter once (reused across requests)
 const transporter = createTransporter();
 
+const shouldRetryEmail = (error) => {
+  return ['ETIMEDOUT', 'ESOCKET', 'ECONNECTION'].includes(error?.code);
+};
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const sendEmail = async ({ to, subject, html, text, replyTo }) => {
   if (!to || !subject || !html) {
     const err = 'Missing required email fields: to, subject, or html';
@@ -57,23 +63,33 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
     ...(replyTo ? { replyTo: replyTo.trim() } : {}),
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', {
-      messageId: info.messageId,
-      response: info.response,
-      to: mailOptions.to,
-      subject: mailOptions.subject,
-    });
-    return { success: true, info };
-  } catch (error) {
-    console.error('Failed to send email:', {
-      to,
-      subject,
-      error: error.message,
-      code: error.code,
-    });
-    return { success: false, error: error.message };
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully:', {
+        messageId: info.messageId,
+        response: info.response,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        attempt,
+      });
+      return { success: true, info };
+    } catch (error) {
+      const finalAttempt = attempt === 2 || !shouldRetryEmail(error);
+      console.error('Failed to send email:', {
+        to,
+        subject,
+        error: error.message,
+        code: error.code,
+        attempt,
+      });
+
+      if (finalAttempt) {
+        return { success: false, error: error.message };
+      }
+
+      await wait(1500);
+    }
   }
 };
 
