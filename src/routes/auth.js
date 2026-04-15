@@ -143,6 +143,32 @@ router.post(
     }
 
     const { name, email, password, inviteCode } = req.body;
+    if (!process.env.ADMIN_INVITE_CODE) {
+      return res.status(500).json({ message: 'ADMIN_INVITE_CODE is not configured' });
+    }
+    const adminCount = await User.countDocuments({ role: 'admin', isActive: true });
+
+    if (adminCount > 0) {
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+      if (!token) {
+        return res.status(403).json({ message: 'Admin authentication required' });
+      }
+
+      let payload;
+      try {
+        payload = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (err) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
+
+      const requesterId = payload.sub || payload.id || payload.userId;
+      const requester = await User.findById(requesterId).select('role isActive');
+      if (!requester || !requester.isActive || requester.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin authentication required' });
+      }
+    }
 
     // Check invite code
     if (inviteCode !== process.env.ADMIN_INVITE_CODE) {

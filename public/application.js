@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnText = document.getElementById('btnText');
     const loadingText = document.getElementById('loadingText');
     const successMessage = document.getElementById('successMessage');
+    const successMessageText = document.getElementById('successMessageText');
   
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -162,6 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
         form.style.opacity = '0.6';
         form.style.pointerEvents = 'none';
         if (successMessage) {
+          if (successMessageText && result.message) {
+            successMessageText.textContent = result.message;
+          }
           successMessage.style.display = 'block';
           successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }

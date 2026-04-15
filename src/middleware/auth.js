@@ -23,6 +23,7 @@ async function requireAuth(req, res, next) {
     // Normalize user shape for compatibility with routes expecting `req.user.id`
     req.user = {
       id: payload.sub || payload.id || payload.userId,
+      sub: payload.sub || payload.id || payload.userId,
       email: payload.email,
       role: payload.role,
       name: payload.name,
@@ -77,4 +78,3 @@ module.exports = {
   authenticate: requireAuth,
   authorize: requireRole,
 };
-

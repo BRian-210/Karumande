@@ -263,7 +263,7 @@ router.post(
         if (classLevel) filter.classLevel = classLevel;
         if (subject) filter.subject = subject;
 
-        const update = { term, subject: subject || null, dueDate, createdBy: req.user.sub };
+        const update = { term, subject: subject || null, dueDate, createdBy: req.user.id };
         if (classLevel) update.classLevel = classLevel;
         const doc = await ResultDueDate.findOneAndUpdate(filter, update, { upsert: true, new: true, setDefaultsOnInsert: true });
         return res.json({ message: 'Due date saved', data: doc });

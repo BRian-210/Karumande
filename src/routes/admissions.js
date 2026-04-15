@@ -15,14 +15,20 @@ const router = express.Router();
 // ========================
 // File Upload Configuration
 // ========================
+const admissionsUploadDir = path.join(__dirname, '../../public/uploads/admissions');
+
+if (!require('fs').existsSync(admissionsUploadDir)) {
+  require('fs').mkdirSync(admissionsUploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../public/uploads/admissions');
-    cb(null, uploadPath);
+    cb(null, admissionsUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '-');
+    cb(null, uniqueSuffix + '-' + safeName);
   },
 });
 
@@ -185,7 +191,7 @@ router.post(
       }
 
       res.status(201).json({
-        message: 'Application submitted successfully!',
+        message: 'Application Submitted Successfully! Please wait as your request is being reviewed.',
         id: admission._id,
       });
     } catch (error) {
@@ -286,7 +292,7 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
     // Notify parent
     const actionWord = status === 'accepted' ? 'approved' : 'not approved';
     try {
-      if (admission.phone) {
+      if (admission.phone && status !== 'accepted') {
         let phone = admission.phone.trim();
         if (phone.startsWith('0')) {
           phone = `+254${phone.slice(1)}`;
@@ -328,11 +334,9 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
           parentUser = await User.findOne({ email: admission.email.toLowerCase() });
         }
 
-        let createdTempPassword = null;
+        const createdTempPassword = generateTempPassword(admissionNumber);
 
         if (!parentUser) {
-          // create parent user with temporary password
-          createdTempPassword = generateTempPassword(admissionNumber);
           parentUser = new User({
             name: admission.parentName || admission.email || 'Parent',
             email: admission.email || `parent+${admission._id}@local.invalid`,
@@ -344,22 +348,13 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
           });
 
           await parentUser.save();
-
-          if (admission.phone) {
-            try {
-              let phone = admission.phone.trim();
-              if (phone.startsWith('0')) {
-                phone = `+254${phone.slice(1)}`;
-              }
-
-              await sendSMS({
-                to: phone,
-                message: `Karumande Link School: Your application for ${admission.studentName} has been approved. Login Email: ${parentUser.email}. Temporary password: ${createdTempPassword}. Please change it on first login. ${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/login`,
-              });
-            } catch (smsErr) {
-              console.warn('Parent approval SMS failed:', smsErr?.message || smsErr);
-            }
+        } else {
+          parentUser.passwordHash = createdTempPassword;
+          parentUser.mustChangePassword = true;
+          if (!parentUser.phone && admission.phone) {
+            parentUser.phone = admission.phone;
           }
+          await parentUser.save();
         }
 
         // Normalize class level to allowed values and create student record with parent linked
@@ -400,16 +395,32 @@ router.patch('/:id/status', authenticate, authorize('admin'), async (req, res) =
         admission.admissionNumber = admissionNumber;
         await admission.save();
 
-        // Send email with details. If we created a user, include temp credentials and force-change info
+        if (admission.phone) {
+          try {
+            let phone = admission.phone.trim();
+            if (phone.startsWith('0')) {
+              phone = `+254${phone.slice(1)}`;
+            }
+
+            await sendSMS({
+              to: phone,
+              message: `Karumande Link School: Your application for ${admission.studentName} has been approved. Admission Number: ${admissionNumber}. Temporary password: ${createdTempPassword}. Please use them to log in, then change your password. ${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}/login`,
+            });
+          } catch (smsErr) {
+            console.warn('Parent approval SMS failed:', smsErr?.message || smsErr);
+          }
+        }
+
+        // Send email with admission number and temporary credentials.
         const emailHtml = `
           <h2>Admission Approved</h2>
           <p>Dear ${admission.parentName},</p>
           <p>Congratulations — your application for <strong>${admission.studentName}</strong> has been approved.</p>
           <p><strong>Admission Number:</strong> ${admissionNumber}</p>
-          ${createdTempPassword ? `<p>An account has been created for you to access the parent portal.</p>
-            <p><strong>Login email:</strong> ${parentUser.email}</p>
-            <p><strong>Temporary password:</strong> <code>${createdTempPassword}</code></p>
-            <p>For security, you will be required to change your password on first login.</p>` : `<p>You can access your account with your existing credentials.</p>`}
+          <p>Please use the details below to log in to the parent portal:</p>
+          <p><strong>Login email:</strong> ${parentUser.email}</p>
+          <p><strong>Temporary password:</strong> <code>${createdTempPassword}</code></p>
+          <p>For security, you will be redirected to change your password immediately after login. Your new password will be the one you use going forward.</p>
           <p>Visit the portal to complete registration and view next steps: <a href="${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}">${process.env.FRONTEND_URL || 'https://karumande.onrender.com'}</a></p>
           <p>Thank you,<br/>Karumande Link School</p>
         `;

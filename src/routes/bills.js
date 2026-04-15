@@ -12,12 +12,12 @@ router.get('/', requireAuth, async (req, res) => {
   const { page, limit, skip } = validatePagination(req.query);
   let filter = {};
   if (req.user.role === 'parent') {
-    const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
+    const studentIds = await Student.find({ parent: req.user.id }).distinct('_id');
     filter.student = { $in: studentIds };
   }
   if (req.query.studentId) {
     if (req.user.role === 'parent') {
-      const allowed = await Student.find({ parent: req.user.sub }).distinct('_id');
+      const allowed = await Student.find({ parent: req.user.id }).distinct('_id');
       if (!allowed.map(String).includes(String(req.query.studentId))) {
         return res.status(403).json({ message: 'Forbidden' });
       }

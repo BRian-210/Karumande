@@ -35,7 +35,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 
   if (req.user.role === 'parent') {
-    const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
+    const studentIds = await Student.find({ parent: req.user.id }).distinct('_id');
     filter.student = filter.student ? filter.student : { $in: studentIds };
   }
 
@@ -55,7 +55,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   
   // Parents can only view their own children's results
   if (req.user.role === 'parent') {
-    const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
+    const studentIds = await Student.find({ parent: req.user.id }).distinct('_id');
     if (!studentIds.includes(result.student._id)) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -187,4 +187,3 @@ router.patch(
 );
 
 module.exports = router;
-

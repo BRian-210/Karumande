@@ -12,7 +12,6 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 const { connectDB } = require('./src/config/db');
-const { connectRedis } = require('./src/config/redis');
 
 // Routes
 const authRoutes = require('./src/routes/auth');
@@ -40,6 +39,14 @@ const authorize = requireRole;
 const mustChangePassword = enforceMustChangePassword;
 
 const app = express();
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
 
 // ========================
 // Security: Helmet + CSP
@@ -100,7 +107,7 @@ app.use('/api/auth/', authLimiter);
 // ========================
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || ['http://localhost:3000'],
+    origin: allowedOrigins.length > 0 ? allowedOrigins : ['http://localhost:3000'],
     credentials: true,
   })
 );
@@ -111,7 +118,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(
   express.json({
     verify: (req, res, buf) => {
-      if (req.originalUrl.startsWith('/api/webhook')) {
+      if (req.originalUrl.startsWith('/api/webhook') || req.originalUrl.startsWith('/api/payments/callback')) {
         req.rawBody = buf.toString();
       }
     },
@@ -188,7 +195,7 @@ app.post('/api/webhook/payments', express.raw({ type: 'application/json' }), asy
 // ========================
 app.use('/api/students', authenticate, mustChangePassword, authorize('admin', 'teacher', 'parent'), studentRoutes);
 app.use('/api/bills', authenticate, mustChangePassword, authorize('admin', 'accountant'), billRoutes);
-app.use('/api/payments', authenticate, mustChangePassword, authorize('admin', 'accountant', 'parent'), paymentRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/api/fee-structures', authenticate, mustChangePassword, authorize('admin', 'accountant'), feeStructureRoutes);
 app.use('/api/results', authenticate, mustChangePassword, authorize('admin', 'teacher', 'student', 'parent'), resultRoutes);
 app.use('/api/content', authenticate, mustChangePassword, authorize('admin', 'teacher'), contentRoutes);
@@ -213,8 +220,10 @@ app.use('/api', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.stack);
   const status = err.status || 500;
+  const isUploadError = err.name === 'MulterError';
+  const statusCode = isUploadError ? 400 : status;
   const message = err.message || 'Something went wrong!';
-  res.status(status).json({
+  res.status(statusCode).json({
     message,
     ...(process.env.NODE_ENV === 'development' && { error: err.stack }),
   });
@@ -237,11 +246,6 @@ app.use((req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
-    try {
-      await connectRedis(); // Connect to Redis for caching (optional)
-    } catch (error) {
-      console.warn('Redis connection failed, caching disabled:', error.message);
-    }
 
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {
@@ -260,11 +264,6 @@ const startServer = async () => {
       console.log('HTTP server closed.');
       await require('mongoose').connection.close();
       console.log('MongoDB connection closed.');
-      try {
-        await require('./src/config/redis').disconnectRedis();
-      } catch (error) {
-        console.warn('Error disconnecting Redis:', error.message);
-      }
       process.exit(0);
     };
 

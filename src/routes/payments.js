@@ -3,18 +3,18 @@ const { body, validationResult } = require('express-validator');
 const Payment = require('../models/Payment');
 const Bill = require('../models/Bill');
 const Student = require('../models/Student');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, enforceMustChangePassword } = require('../middleware/auth');
 const { stkPush, isIpAllowed, normalizePhone, validateSignature } = require('../services/daraja');
 
 const router = express.Router();
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, enforceMustChangePassword, requireRole('admin', 'accountant', 'parent'), async (req, res) => {
   const { page, limit, skip } = require('../constants/school').validatePagination(req.query);
   let filter = {};
   if (req.query.studentId) filter.student = req.query.studentId;
   if (req.query.billId) filter.bill = req.query.billId;
   if (req.user.role === 'parent') {
-    const studentIds = await Student.find({ parent: req.user.sub }).distinct('_id');
+    const studentIds = await Student.find({ parent: req.user.id }).distinct('_id');
     filter.student = { $in: studentIds };
   }
   const [items, total] = await Promise.all([
@@ -27,6 +27,8 @@ router.get('/', requireAuth, async (req, res) => {
 router.post(
   '/initiate',
   requireAuth,
+  enforceMustChangePassword,
+  requireRole('admin', 'accountant', 'parent'),
   [
     body('studentId').isString(),
     body('billId').optional().isString(),
@@ -81,7 +83,8 @@ router.post(
 router.post(
   '/:id/confirm',
   requireAuth,
-  requireRole('admin', 'teacher'),
+  enforceMustChangePassword,
+  requireRole('admin'),
   [body('status').isIn(['success', 'failed']), body('amount').optional().isNumeric()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -160,4 +163,3 @@ router.post('/callback', async (req, res) => {
 });
 
 module.exports = router;
-

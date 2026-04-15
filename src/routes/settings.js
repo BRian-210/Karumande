@@ -17,7 +17,21 @@ const storage = multer.diskStorage({
     cb(null, 'site-logo' + ext);
   }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.has(ext)) {
+      return cb(null, true);
+    }
+
+    return cb(new Error('Invalid file type. Only JPG, PNG, and WEBP images are allowed.'));
+  },
+});
 
 // Upload or replace site logo (admin only)
 router.post('/logo', requireAuth, requireRole('admin'), upload.single('logo'), async (req, res) => {
