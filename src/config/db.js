@@ -30,7 +30,6 @@ async function connectDB(uri = process.env.MONGO_URI) {
     serverSelectionTimeoutMS: 15000, // Keep trying to send operations for 15 seconds
     socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
     bufferCommands: false, // Disable buffering during initial connection
-    bufferMaxEntries: 0, // Disable mongoose buffering
     // Connection monitoring
     heartbeatFrequencyMS: 10000, // Check server every 10 seconds
   };
