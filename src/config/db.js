@@ -20,15 +20,16 @@ async function connectDB(uri = process.env.MONGO_URI) {
 
   try {
     const connectOptions = {
-      // Recommended modern options
-      maxPoolSize: 10, // Maintain up to 10 socket connections
+      // Recommended modern options for high concurrency
+      maxPoolSize: 50, // Increased for high concurrency - maintain up to 50 socket connections
+      minPoolSize: 10, // Minimum number of connections in pool
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
       serverSelectionTimeoutMS: 15000, // Keep trying to send operations for 15 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      // Remove unsupported/deprecated options for newer mongoose versions
       bufferCommands: false, // Disable buffering during initial connection
-      // Remove deprecated options
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true,
+      bufferMaxEntries: 0, // Disable mongoose buffering
+      // Connection monitoring
+      heartbeatFrequencyMS: 10000, // Check server every 10 seconds
     };
 
     await mongoose.connect(uri, connectOptions);

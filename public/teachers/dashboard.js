@@ -1,50 +1,50 @@
-// Teachers Dashboard – Enter Results (updated January 2026)
-// Marksheet-style grid:
-// - GET  /api/students?classLevel=CLASS
-// - GET  /api/results?classLevel=CLASS&term=TERM   (pre-fill all subjects)
-// - GET  /api/teachers/result-due?classLevel=CLASS&term=TERM (lock after deadline)
-// - POST /api/teachers/results-grid                (save all subjects for all learners)
-
 const token = localStorage.getItem('token');
 if (!token) {
   window.location.href = '/teachers/login.html';
 }
 
-// Subject lists by class level
+// ==================== SUBJECT CONFIG ====================
+
 const EARLY_CHILDHOOD_SUBJECTS = [
-  { name: 'Mathematical Activities', label: 'Math Activities', defaultMax: 100 },
-  { name: 'English', label: 'English', defaultMax: 100 },
-  { name: 'Reading', label: 'Reading', defaultMax: 100 },
-  { name: 'Listening and Speaking', label: 'Listening & Speaking', defaultMax: 100 },
-  { name: 'Kiswahili', label: 'Kiswahili', defaultMax: 100 },
-  { name: 'Kusoma', label: 'Kusoma', defaultMax: 100 },
-  { name: 'Kusikiliza na kuzungumza', label: 'Kusikiliza & Kuzungumza', defaultMax: 100 },
-  { name: 'Environmental', label: 'Environmental', defaultMax: 100 },
-  { name: 'Religious Activities', label: 'Religious Activities', defaultMax: 100 },
-  { name: 'Psychomotor', label: 'Psychomotor', defaultMax: 100 },
-  { name: 'Creative Arts', label: 'Creative Arts', defaultMax: 100 }
+  { name: 'Mathematical Activities', label: 'Math Act.', defaultMax: 100 },
+  { name: 'English Activities', label: 'English', defaultMax: 100 },
+  { name: 'Kiswahili Activities', label: 'Kiswahili', defaultMax: 100 },
+  { name: 'Environmental Activities', label: 'Env. Act.', defaultMax: 100 },
+  { name: 'Hygiene and Nutrition', label: 'Hygiene', defaultMax: 100 },
+  { name: 'Psychomotor Activities', label: 'Psychomotor', defaultMax: 100 },
+  { name: 'Creative Activities', label: 'Creative', defaultMax: 100 },
+  { name: 'Religious Activities', label: 'Religious', defaultMax: 100 }
 ];
 
 const PRIMARY_SUBJECTS = [
   { name: 'Mathematics', label: 'Math', defaultMax: 100 },
   { name: 'English', label: 'ENG', defaultMax: 100 },
   { name: 'Kiswahili', label: 'KISW', defaultMax: 100 },
-  { name: 'Science', label: 'SCIENCE', defaultMax: 100 },
-  { name: 'Agriculture', label: 'AGRI', defaultMax: 70 },
-  { name: 'Pre Tech', label: 'PRE TECH', defaultMax: 100 },
+  { name: 'Science and Technology', label: 'SCI', defaultMax: 100 },
   { name: 'Social Studies', label: 'SST', defaultMax: 100 },
-  { name: 'CRE / IRE', label: 'CRE', defaultMax: 100 },
-  { name: 'Art & Craft', label: 'CAS', defaultMax: 110 }
+  { name: 'Agriculture', label: 'AGRI', defaultMax: 70 },
+  { name: 'Home Science', label: 'H/SC', defaultMax: 70 },
+  { name: 'Creative Arts', label: 'C/ARTS', defaultMax: 100 },
+  { name: 'Physical and Health Education', label: 'PHE', defaultMax: 100 },
+  { name: 'Religious Education', label: 'CRE/IRE', defaultMax: 100 }
 ];
 
-// Get subjects by class level
 function getSubjectsByClass(classLevel) {
   if (!classLevel) return PRIMARY_SUBJECTS;
-  const earlyChildhoodClasses = ['Playgroup', 'PP1', 'PP2'];
+  const earlyChildhoodClasses = ['Playgroup', 'PP1', 'PP2', 'PP3'];
   return earlyChildhoodClasses.includes(classLevel) ? EARLY_CHILDHOOD_SUBJECTS : PRIMARY_SUBJECTS;
 }
 
-const SUBJECTS = PRIMARY_SUBJECTS; // default
+// GLOBAL VARIABLES 
+
+const CURRENT_YEAR = 2026;
+let currentStudents = [];
+let isPastDueDate = false;
+let lockedSubjects = new Set();
+
+let autoSaveEnabled = true;
+let autoSaveTimeout = null;
+const AUTO_SAVE_DELAY = 1200; // 1.2 seconds
 
 const elements = {
   classSelect: document.getElementById('classSelect'),
@@ -63,89 +63,19 @@ const elements = {
   notificationsList: document.getElementById('notificationsList')
 };
 
-// Load notifications on page load
-loadNotifications();
-
-// Logout
-elements.logoutBtn?.addEventListener('click', () => {
-  if (confirm('Log out of Teachers Dashboard?')) {
-    localStorage.removeItem('token');
-    window.location.href = '/teachers/login.html';
-  }
-});
-
-let currentStudents = [];
-let isPastDueDate = false;
-let lockedSubjects = new Set(); // subject.name locked for teachers after subject-specific due date
-const CURRENT_YEAR = 2026;
-
-async function loadNotifications() {
-  try {
-    const res = await fetch('/api/teachers/result-due', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('token');
-        window.location.href = '/teachers/login.html';
-        return;
-      }
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const dueDates = await res.json();
-    const now = new Date();
-    const upcoming = dueDates.filter(dd => new Date(dd.dueDate) > now);
-
-    if (upcoming.length === 0) {
-      elements.notificationsSection.style.display = 'none';
-      return;
-    }
-
-    // Sort by due date
-    upcoming.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-
-    const notificationsHtml = upcoming.slice(0, 5).map(dd => {
-      const dueDate = new Date(dd.dueDate);
-      const daysUntil = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-      const isUrgent = daysUntil <= 3;
-      const isOverdue = daysUntil < 0;
-
-      let className = 'notification-item';
-      if (isOverdue) className += ' danger';
-      else if (isUrgent) className += ' warning';
-
-      const title = dd.subject 
-        ? `Due Date for ${dd.subject}` 
-        : `Class ${dd.classLevel || 'All Classes'} Results Due`;
-      
-      const description = dd.classLevel 
-        ? `Submit ${dd.classLevel} results by ${dueDate.toLocaleDateString()}`
-        : `Submit all class results by ${dueDate.toLocaleDateString()}`;
-
-      return `
-        <div class="${className}">
-          <div class="notification-content">
-            <h4>${title}</h4>
-            <p>${description}</p>
-          </div>
-          <div class="notification-date">
-            ${isOverdue ? 'Overdue' : daysUntil === 0 ? 'Today' : `${daysUntil} day${daysUntil === 1 ? '' : 's'}`}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    elements.notificationsList.innerHTML = notificationsHtml;
-    elements.notificationsSection.style.display = 'block';
-
-  } catch (err) {
-    console.error('Load notifications error:', err);
-    // Don't show error message for notifications, just hide the section
-    elements.notificationsSection.style.display = 'none';
-  }
+// Load auto-save preference
+function loadAutoSavePreference() {
+  const saved = localStorage.getItem('autoSaveEnabled');
+  if (saved !== null) autoSaveEnabled = saved === 'true';
 }
+
+// Auto-save toggle
+function toggleAutoSave(enabled) {
+  autoSaveEnabled = enabled;
+  localStorage.setItem('autoSaveEnabled', enabled);
+}
+
+// UI HELPERS 
 
 function showMessage(text, type = 'info') {
   if (!elements.message) return;
@@ -155,345 +85,68 @@ function showMessage(text, type = 'info') {
   setTimeout(() => elements.message.style.display = 'none', 7000);
 }
 
-function validateScoreInput(input, max) {
-  const val = input.value.trim();
-  if (val === '') {
-    input.style.borderColor = '';
-    input.setCustomValidity('');
-    return;
-  }
-  const num = Number(val);
-  if (isNaN(num) || num < 0 || num > max) {
-    input.style.borderColor = 'var(--error, red)';
-    input.setCustomValidity(`Score must be 0–${max}`);
-  } else {
-    input.style.borderColor = '';
-    input.setCustomValidity('');
-  }
-}
-
-function getMaxScoresFromHeader() {
-  const outOfInputs = document.querySelectorAll('.outof-input');
-  const map = new Map();
-  outOfInputs.forEach(input => {
-    const subjectName = input.dataset.subject;
-    const max = Number(input.value);
-    map.set(subjectName, Number.isFinite(max) && max > 0 ? max : 100);
-  });
-  return map;
-}
-
-function computeTotalsAndPositions() {
-  const rows = Array.from(elements.studentsBody.querySelectorAll('tr'));
-  const totals = rows.map(row => {
-    const totalCell = row.querySelector('[data-total]');
-    const inputs = row.querySelectorAll('.score-input');
-    let sum = 0;
-    inputs.forEach(i => {
-      const v = i.value.trim();
-      const n = v === '' ? 0 : Number(v);
-      sum += Number.isFinite(n) ? n : 0;
-    });
-    if (totalCell) totalCell.textContent = String(sum);
-    return { row, sum };
-  });
-
-  // Sort by total descending to get positions
-  totals.sort((a, b) => b.sum - a.sum);
-  totals.forEach((t, idx) => {
-    const posCell = t.row.querySelector('[data-position]');
-    if (posCell) posCell.textContent = String(idx + 1);
-  });
-}
-
-elements.loadBtn?.addEventListener('click', async () => {
-  const cls = elements.classSelect.value?.trim();
-  const term = elements.termSelect.value?.trim();
-
-  if (!cls || !term) {
-    showMessage('Please select Class and Term.', 'error');
-    return;
-  }
-
-  showMessage('Loading learners...', 'loading');
-
-  try {
-    // 0) Check due date first (global + class-level lock + subject locks)
-    const dueDateRes = await fetch('/api/teachers/result-due', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    if (dueDateRes.ok) {
-      const allDueDates = await dueDateRes.json();
-      const now = new Date();
-      
-      // Filter due dates for this class and term, plus global ones
-      const relevantDueDates = allDueDates.filter(dd => 
-        (dd.term === term) && 
-        (!dd.classLevel || dd.classLevel === cls)
-      );
-      
-      // Global due date (locks everything for teachers)
-      const globalDueDate = relevantDueDates.find(dd => !dd.classLevel && !dd.subject);
-      if (globalDueDate && new Date(globalDueDate.dueDate) < now) {
-        isPastDueDate = true;
-        lockedSubjects = new Set(getSubjectsByClass(cls).map(s => s.name));
-        showMessage(
-          `⚠️ Submission deadline has passed for all classes (${new Date(globalDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
-          'error'
-        );
-      } else {
-        // Class-level due date (locks everything for teachers)
-        const classDueDate = relevantDueDates.find(dd => dd.classLevel === cls && !dd.subject);
-        if (classDueDate && new Date(classDueDate.dueDate) < now) {
-          isPastDueDate = true;
-          lockedSubjects = new Set(getSubjectsByClass(cls).map(s => s.name));
-          showMessage(
-            `⚠️ Submission deadline has passed for ${cls} (${new Date(classDueDate.dueDate).toLocaleString()}). Only admins can edit results now.`,
-            'error'
-          );
-        } else {
-          isPastDueDate = false;
-          // Subject-specific locks (global or class-specific)
-          lockedSubjects = new Set();
-          relevantDueDates
-            .filter(dd => dd.subject && new Date(dd.dueDate) < now)
-            .forEach(dd => lockedSubjects.add(dd.subject));
-        }
-      }
-    }
-
-    // 1) Load students in selected class
-    const studentsQuery = new URLSearchParams({
-      classLevel: cls
-    }).toString();
-
-    const res = await fetch(`/api/students?${studentsQuery}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem('token');
-      window.location.href = '/teachers/login.html';
-      return;
-    }
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText || `HTTP ${res.status}`);
-    }
-
-    const payload = await res.json();
-    const students = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : []);
-
-    if (students.length === 0) {
-      showMessage('No students found for this class.', 'error');
-      elements.studentsSection.style.display = 'none';
-      return;
-    }
-
-    // 2) Load existing results for this class & term, to pre-fill all subject scores
-    const resultsQuery = new URLSearchParams({
-      classLevel: cls,
-      term: term
-    }).toString();
-
-    const resResults = await fetch(`/api/results?${resultsQuery}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const existingByStudent = new Map(); // studentId -> { subjects: [{name,score,maxScore}] }
-    if (resResults.ok) {
-      const resultsPayload = await resResults.json();
-      const results = Array.isArray(resultsPayload.data)
-        ? resultsPayload.data
-        : (Array.isArray(resultsPayload) ? resultsPayload : []);
-
-      results.forEach(r => {
-        if (r.student?._id) {
-          existingByStudent.set(String(r.student._id), {
-            subjects: Array.isArray(r.subjects) ? r.subjects : []
-          });
-        }
-      });
-    }
-
-    // 3) Build currentStudents with existing subject scores
-    currentStudents = students.map((s, idx) => ({
-      _id: s._id,
-      name: s.name || s.fullName || s.studentName || 'Unknown',
-      admissionNo: s.admissionNumber || s.admNo || s.regNo || '-',
-      index: idx + 1,
-      existingSubjects: existingByStudent.get(String(s._id))?.subjects || []
-    }));
-
-    renderTable(cls, term);
-    elements.studentsSection.style.display = 'block';
-    
-    if (isPastDueDate) {
-      showMessage(
-        `⚠️ Submission deadline has passed. You can view results but cannot edit them. Only admins can make changes.`,
-        'error'
-      );
-    } else {
-      showMessage(`Loaded ${students.length} students.`, 'success');
-    }
-
-  } catch (err) {
-    console.error('Load students error:', err);
-    showMessage(`Error loading students: ${err.message}`, 'error');
-  }
-});
-
-function renderTable(className, term) {
-  elements.classTitle.textContent = `${className} — ${term} ${CURRENT_YEAR} Results`;
-
-  // Get subjects for this class
-  const classSubjects = getSubjectsByClass(className);
-
-  // Header row (subjects + total + position)
-  elements.headerRow.innerHTML = `
-    <th style="min-width:220px;">NAMES</th>
-    ${classSubjects.map(s => `<th style="min-width:90px;text-align:center;">${s.label}</th>`).join('')}
-    <th style="min-width:90px;text-align:center;">TOTAL</th>
-    <th style="min-width:110px;text-align:center;">POSITION</th>
-  `;
-
-  // Out-of row (max score per subject)
-  elements.outOfRow.innerHTML = `
-    <th>OUT OF</th>
-    ${classSubjects.map(s => {
-      const disabled = isPastDueDate ? 'disabled' : '';
-      return `<th style="text-align:center;">
-        <input class="outof-input" data-subject="${s.name}" type="number" min="1" max="1000" value="${s.defaultMax}" style="width:80px;text-align:center;" ${disabled}/>
-      </th>`;
-    }).join('')}
-    <th></th>
-    <th></th>
-  `;
-
-  // Render body
-  elements.studentsBody.innerHTML = currentStudents.map(student => {
-    const existingMap = new Map(
-      (student.existingSubjects || []).map(sub => [String(sub.name || ''), sub])
-    );
-
-    return `
-      <tr data-student-row="${student._id}">
-        <td style="font-weight:600;">${student.name}</td>
-        ${classSubjects.map(s => {
-          const existing = existingMap.get(s.name);
-          const val = existing?.score ?? '';
-          const maxVal = existing?.maxScore ?? s.defaultMax;
-          const locked = isPastDueDate || lockedSubjects.has(s.name);
-          return `
-            <td style="text-align:center;">
-              <input
-                class="score-input"
-                data-student="${student._id}"
-                data-subject="${s.name}"
-                type="number"
-                min="0"
-                step="1"
-                value="${val}"
-                placeholder="—"
-                ${locked ? 'disabled style="background:#f3f4f6;cursor:not-allowed;"' : ''}
-              />
-              <input type="hidden" class="maxscore-hidden" data-student="${student._id}" data-subject="${s.name}" value="${maxVal}">
-            </td>
-          `;
-        }).join('')}
-        <td data-total style="text-align:center;font-weight:700;">0</td>
-        <td data-position style="text-align:center;font-weight:700;">-</td>
-      </tr>
+// Visual Auto-save Indicator
+function showSaveStatus(message, type = 'info') {
+  let indicator = document.getElementById('autoSaveIndicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'autoSaveIndicator';
+    indicator.style.cssText = `
+      position: fixed; top: 20px; right: 20px; z-index: 10000;
+      background: rgba(0,0,0,0.85); color: white; padding: 10px 16px;
+      border-radius: 8px; font-size: 14px; font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: none;
+      align-items: center; gap: 8px; transition: all 0.3s ease;
     `;
-  }).join('');
-
-  // Configure submit button state
-  if (elements.submitBtn) {
-    if (isPastDueDate) {
-      elements.submitBtn.disabled = true;
-      elements.submitBtn.style.opacity = '0.6';
-      elements.submitBtn.style.cursor = 'not-allowed';
-      elements.submitBtn.textContent = 'Submission Closed';
-    } else {
-      elements.submitBtn.disabled = false;
-      elements.submitBtn.style.opacity = '1';
-      elements.submitBtn.style.cursor = 'pointer';
-      elements.submitBtn.textContent = 'Save All Results';
-    }
+    document.body.appendChild(indicator);
   }
 
-  // Wire validation + recompute totals
-  const maxMap = getMaxScoresFromHeader();
-  elements.studentsBody.querySelectorAll('.score-input').forEach(input => {
-    input.addEventListener('input', () => {
-      const subjectName = input.dataset.subject;
-      const max = maxMap.get(subjectName) ?? 100;
-      validateScoreInput(input, max);
-      computeTotalsAndPositions();
-    });
-  });
-  document.querySelectorAll('.outof-input').forEach(input => {
-    input.addEventListener('input', () => {
-      computeTotalsAndPositions();
-    });
-  });
+  let icon = '';
+  if (type === 'saving') icon = '⟳';
+  else if (type === 'success') icon = '✓';
+  else if (type === 'error') icon = '⚠';
 
-  computeTotalsAndPositions();
+  indicator.innerHTML = `${icon} ${message}`;
+  indicator.style.display = 'flex';
+
+  if (type === 'success') {
+    setTimeout(() => {
+      indicator.style.opacity = '0';
+      setTimeout(() => { indicator.style.display = 'none'; indicator.style.opacity = '1'; }, 300);
+    }, 3000);
+  }
 }
 
-elements.submitBtn?.addEventListener('click', async () => {
-  // Check due date again before submitting
-  if (isPastDueDate) {
-    showMessage('Submission deadline has passed. Only admins can edit results now.', 'error');
-    return;
-  }
+// SAVE FUNCTION 
+
+async function saveResults(isAuto = false) {
+  if (isPastDueDate || (isAuto && !autoSaveEnabled)) return;
 
   const cls = elements.classSelect.value?.trim();
   const term = elements.termSelect.value?.trim();
-  if (!cls || !term) {
-    showMessage('Please select Class and Term.', 'error');
-    return;
-  }
+  if (!cls || !term) return;
 
   const maxScores = getMaxScoresFromHeader();
-  const inputs = document.querySelectorAll('.score-input');
+  const scoreInputs = document.querySelectorAll('.score-input:not(:disabled)');
 
-  // Client-side validation (already done earlier, but double-check)
-  const invalid = Array.from(inputs).filter(input => {
-    if (input.disabled) return false;
-    const subjectName = input.dataset.subject;
-    const max = maxScores.get(subjectName) ?? 100;
-    const valRaw = input.value.trim();
-    if (valRaw === '') return false; // allow blank (treated as 0 on save)
-    const val = Number(valRaw);
-    return isNaN(val) || val < 0 || val > max;
-  });
+  const byStudent = new Map();
 
-  if (invalid.length > 0) {
-    invalid.forEach(i => i.reportValidity());
-    showMessage(`Please correct ${invalid.length} invalid score(s).`, 'error');
-    return;
-  }
-
-  // Build payload: per student, all subjects
-  const byStudent = new Map(); // studentId -> subjects[]
-  Array.from(inputs).forEach(input => {
+  scoreInputs.forEach(input => {
     const studentId = input.dataset.student;
     const subjectName = input.dataset.subject;
     if (!studentId || !subjectName) return;
-    if (input.disabled) return; // do not submit locked subjects
 
     const max = maxScores.get(subjectName) ?? 100;
     const raw = input.value.trim();
     const score = raw === '' ? 0 : Number(raw);
+
     if (!Number.isFinite(score)) return;
 
-    const list = byStudent.get(studentId) || [];
-    list.push({ name: subjectName, score, maxScore: max });
-    byStudent.set(studentId, list);
+    if (!byStudent.has(studentId)) byStudent.set(studentId, []);
+    byStudent.get(studentId).push({ name: subjectName, score, maxScore: max });
   });
+
+  if (byStudent.size === 0) return;
 
   const payload = {
     classLevel: cls,
@@ -504,7 +157,7 @@ elements.submitBtn?.addEventListener('click', async () => {
     }))
   };
 
-  showMessage('Saving results...', 'loading');
+  showSaveStatus(isAuto ? 'Auto-saving...' : 'Saving...', 'saving');
 
   try {
     const res = await fetch('/api/teachers/results-grid', {
@@ -518,44 +171,270 @@ elements.submitBtn?.addEventListener('click', async () => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      const errorMsg = errData.message 
-        || (errData.errors?.[0]?.msg) 
-        || `Server error (${res.status})`;
-      throw new Error(errorMsg);
+      throw new Error(errData.message || `Server error (${res.status})`);
     }
 
     const data = await res.json();
-
-    // Backend returns { saved: number, failed: array }
-    const savedCount = data.saved ?? 0;
-    const failedCount = data.failed?.length ?? 0;
-
-    if (failedCount > 0) {
-      showMessage(
-        `Saved ${savedCount} results. ${failedCount} failed. Check console.`,
-        'warning'
-      );
-      console.warn('Failed saves:', data.failed);
-    } else {
-      showMessage(`Success! ${savedCount} results saved.`, 'success');
-    }
-
-    // Optional: prevent double-submit until page reload
-    // elements.submitBtn.disabled = true;
-    // elements.submitBtn.textContent = 'Saved ✓';
+    showSaveStatus(`✓ Saved ${data.saved || 0} results`, 'success');
 
   } catch (err) {
-    console.error('Submit error:', err);
-    showMessage(`Could not save results: ${err.message}`, 'error');
+    console.error('Save error:', err);
+    showSaveStatus(`Save failed: ${err.message}`, 'error');
+  }
+}
+
+// Debounced Auto-save
+function triggerAutoSave() {
+  if (!autoSaveEnabled || isPastDueDate) return;
+  clearTimeout(autoSaveTimeout);
+  autoSaveTimeout = setTimeout(() => saveResults(true), AUTO_SAVE_DELAY);
+}
+
+// ==================== VALIDATION & COMPUTE ====================
+
+function validateScoreInput(input, max) {
+  const val = input.value.trim();
+  if (val === '') {
+    input.style.borderColor = '';
+    input.setCustomValidity('');
+    return;
+  }
+  const num = Number(val);
+  if (isNaN(num) || num < 0 || num > max) {
+    input.style.borderColor = 'red';
+    input.setCustomValidity(`Score must be 0–${max}`);
+  } else {
+    input.style.borderColor = '';
+    input.setCustomValidity('');
+  }
+}
+
+function getMaxScoresFromHeader() {
+  const map = new Map();
+  document.querySelectorAll('.outof-input').forEach(input => {
+    const subject = input.dataset.subject;
+    let max = Number(input.value);
+    map.set(subject, Number.isFinite(max) && max > 0 ? max : 100);
+  });
+  return map;
+}
+
+function computeTotalsAndPositions() {
+  const rows = Array.from(elements.studentsBody.querySelectorAll('tr'));
+  
+  rows.forEach(row => {
+    let total = 0;
+    row.querySelectorAll('.score-input').forEach(input => {
+      const val = input.value.trim();
+      total += val === '' ? 0 : (Number(val) || 0);
+    });
+    const totalCell = row.querySelector('[data-total]');
+    if (totalCell) totalCell.textContent = total;
+  });
+
+  // Position ranking
+  const sortedRows = [...rows].sort((a, b) => {
+    const ta = Number(a.querySelector('[data-total]').textContent) || 0;
+    const tb = Number(b.querySelector('[data-total]').textContent) || 0;
+    return tb - ta;
+  });
+
+  sortedRows.forEach((row, idx) => {
+    const posCell = row.querySelector('[data-position]');
+    if (posCell) posCell.textContent = idx + 1;
+  });
+}
+
+// LOAD NOTIFICATIONS 
+
+async function loadNotifications() {
+  try {
+    const res = await fetch('/api/teachers/result-due', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('token');
+        window.location.href = '/teachers/login.html';
+      }
+      return;
+    }
+
+    const dueDates = await res.json();
+    const now = new Date();
+    const upcoming = dueDates.filter(dd => new Date(dd.dueDate) > now);
+
+    if (upcoming.length === 0) {
+      elements.notificationsSection.style.display = 'none';
+      return;
+    }
+
+    upcoming.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    const html = upcoming.slice(0, 5).map(dd => {
+      const due = new Date(dd.dueDate);
+      const days = Math.ceil((due - now) / 86400000);
+      const isUrgent = days <= 3;
+      const isOverdue = days < 0;
+
+      let cls = 'notification-item';
+      if (isOverdue) cls += ' danger';
+      else if (isUrgent) cls += ' warning';
+
+      return `
+        <div class="${cls}">
+          <div class="notification-content">
+            <h4>${dd.subject ? `Due: ${dd.subject}` : `Class ${dd.classLevel || 'All'} Results`}</h4>
+            <p>Due by ${due.toLocaleDateString()}</p>
+          </div>
+          <div class="notification-date">
+            ${isOverdue ? 'Overdue' : days === 0 ? 'Today' : `${days} day${days !== 1 ? 's' : ''}`}
+          </div>
+        </div>`;
+    }).join('');
+
+    elements.notificationsList.innerHTML = html;
+    elements.notificationsSection.style.display = 'block';
+  } catch (err) {
+    console.error('Notifications error:', err);
+    elements.notificationsSection.style.display = 'none';
+  }
+}
+
+// ==================== RENDER TABLE ====================
+
+function renderTable(className, term) {
+  const subjects = getSubjectsByClass(className);
+  elements.classTitle.textContent = `${className} — ${term} ${CURRENT_YEAR}`;
+
+  // Header
+  elements.headerRow.innerHTML = `
+    <th style="min-width:240px; text-align:left;">Learner Name</th>
+    ${subjects.map(s => `<th style="min-width:95px; text-align:center;">${s.label}</th>`).join('')}
+    <th style="min-width:90px; text-align:center;">TOTAL</th>
+    <th style="min-width:100px; text-align:center;">POSITION</th>
+  `;
+
+  // Out Of Row
+  elements.outOfRow.innerHTML = `
+    <th>OUT OF</th>
+    ${subjects.map(s => `
+      <th style="text-align:center;">
+        <input type="number" class="outof-input" data-subject="${s.name}" 
+               value="${s.defaultMax}" min="1" style="width:75px; text-align:center;" 
+               ${isPastDueDate ? 'disabled' : ''}>
+      </th>
+    `).join('')}
+    <th></th><th></th>
+  `;
+
+  // Students
+  elements.studentsBody.innerHTML = currentStudents.map(student => {
+    const existingMap = new Map(student.existingSubjects.map(sub => [sub.name, sub]));
+    return `
+      <tr data-student-id="${student._id}">
+        <td style="font-weight:600;">${student.name}</td>
+        ${subjects.map(s => {
+          const ex = existingMap.get(s.name);
+          const locked = isPastDueDate || lockedSubjects.has(s.name);
+          return `
+            <td style="text-align:center;">
+              <input type="number" min="0" step="1" class="score-input"
+                data-student="${student._id}" data-subject="${s.name}"
+                value="${ex?.score ?? ''}" placeholder="—"
+                ${locked ? 'disabled style="background:#f1f1f1; cursor:not-allowed;"' : ''}>
+              <input type="hidden" class="maxscore-hidden" 
+                data-student="${student._id}" data-subject="${s.name}" 
+                value="${ex?.maxScore ?? s.defaultMax}">
+            </td>`;
+        }).join('')}
+        <td data-total style="text-align:center; font-weight:700;">0</td>
+        <td data-position style="text-align:center; font-weight:700;">-</td>
+      </tr>`;
+  }).join('');
+
+  // Event Listeners
+  document.querySelectorAll('.score-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const max = getMaxScoresFromHeader().get(input.dataset.subject) ?? 100;
+      validateScoreInput(input, max);
+      computeTotalsAndPositions();
+      triggerAutoSave();
+    });
+  });
+
+  document.querySelectorAll('.outof-input').forEach(input => {
+    input.addEventListener('input', computeTotalsAndPositions);
+  });
+
+  computeTotalsAndPositions();
+
+  // Submit Button
+  if (elements.submitBtn) {
+    elements.submitBtn.disabled = isPastDueDate;
+    elements.submitBtn.textContent = isPastDueDate ? 'Submission Closed' : 'Save All Results';
+    elements.submitBtn.onclick = () => {
+      clearTimeout(autoSaveTimeout);
+      saveResults(false);
+    };
+  }
+}
+
+// ==================== LOAD CLASS DATA ====================
+
+elements.loadBtn?.addEventListener('click', async () => {
+  const cls = elements.classSelect.value?.trim();
+  const term = elements.termSelect.value?.trim();
+  if (!cls || !term) {
+    showMessage('Please select Class and Term.', 'error');
+    return;
+  }
+
+  showMessage('Loading learners...', 'loading');
+
+  try {
+    renderTable(cls, term);
+    elements.studentsSection.style.display = 'block';
+
+  } catch (err) {
+    console.error(err);
+    showMessage(`Error loading data: ${err.message}`, 'error');
   }
 });
 
-// Clear scores (UI only)
-elements.clearBtn?.addEventListener('click', (e) => {
-  e.preventDefault();
-  if (!confirm('Clear all scores on this sheet?')) return;
-  document.querySelectorAll('.score-input').forEach(i => {
-    if (!i.disabled) i.value = '';
-  });
+// Clear Button
+elements.clearBtn?.addEventListener('click', () => {
+  if (!confirm('Clear all scores on this page?')) return;
+  document.querySelectorAll('.score-input:not(:disabled)').forEach(i => i.value = '');
   computeTotalsAndPositions();
+  if (autoSaveEnabled && !isPastDueDate) triggerAutoSave();
+});
+
+// Logout
+elements.logoutBtn?.addEventListener('click', () => {
+  if (confirm('Log out?')) {
+    localStorage.removeItem('token');
+    window.location.href = '/teachers/login.html';
+  }
+});
+
+// ==================== INITIALIZE ====================
+
+loadAutoSavePreference();
+loadNotifications();
+
+// Add Auto-save Toggle UI (place this where you want the toggle to appear)
+const toggleHTML = `
+  <div style="margin: 15px 0; display: flex; align-items: center; gap: 8px; font-size: 14px;">
+    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+      <input type="checkbox" id="autoSaveToggle" ${autoSaveEnabled ? 'checked' : ''}>
+      <span>Enable Auto-save</span>
+    </label>
+  </div>
+`;
+elements.notificationsSection?.insertAdjacentHTML('afterend', toggleHTML);
+
+document.getElementById('autoSaveToggle')?.addEventListener('change', (e) => {
+  toggleAutoSave(e.target.checked);
 });

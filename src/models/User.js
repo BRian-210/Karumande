@@ -82,6 +82,7 @@ const userSchema = new mongoose.Schema(
 // ======================== 
 userSchema.index({ role: 1 });
 userSchema.index({ children: 1 });
+userSchema.index({ email: 1 }); // For fast authentication lookups
 
 // ========================
 // Virtuals & JSON transformation

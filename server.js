@@ -5,11 +5,14 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 const { connectDB } = require('./src/config/db');
+const { connectRedis } = require('./src/config/redis');
 
 // Routes
 const authRoutes = require('./src/routes/auth');
@@ -66,6 +69,31 @@ app.use(
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
+
+// ========================
+// Performance: Compression & Rate Limiting
+// ========================
+app.use(compression()); // Enable gzip compression
+
+// Rate limiting - adjust limits based on your needs
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/', limiter); // Apply to API routes
+
+// Stricter rate limiting for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 auth attempts per windowMs
+  message: 'Too many authentication attempts, please try again later.',
+});
+
+app.use('/api/auth/', authLimiter);
 
 // ========================
 // Core Middleware
@@ -209,6 +237,11 @@ app.use((req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+    try {
+      await connectRedis(); // Connect to Redis for caching (optional)
+    } catch (error) {
+      console.warn('Redis connection failed, caching disabled:', error.message);
+    }
 
     const PORT = process.env.PORT || 3000;
     const server = app.listen(PORT, () => {
@@ -227,6 +260,11 @@ const startServer = async () => {
       console.log('HTTP server closed.');
       await require('mongoose').connection.close();
       console.log('MongoDB connection closed.');
+      try {
+        await require('./src/config/redis').disconnectRedis();
+      } catch (error) {
+        console.warn('Error disconnecting Redis:', error.message);
+      }
       process.exit(0);
     };
 

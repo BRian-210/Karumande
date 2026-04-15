@@ -3,12 +3,21 @@ const { body, validationResult } = require('express-validator');
 const Announcement = require('../models/Announcement');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { validatePagination } = require('../constants/school');
+const cache = require('../utils/cache');
 
 const router = express.Router();
 
 // Public fetch (optionally filter audience) with active window + pagination
 router.get('/', async (req, res) => {
   const { page, limit, skip } = validatePagination(req.query);
+  const cacheKey = `announcements:${page}:${limit}:${req.query.audience || 'all'}`;
+
+  // Try cache first
+  const cached = await cache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   const now = new Date();
   const filter = {
     active: true,
@@ -23,7 +32,13 @@ router.get('/', async (req, res) => {
     Announcement.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
     Announcement.countDocuments(filter)
   ]);
-  res.json({ data: items, page, limit, total });
+
+  const result = { data: items, page, limit, total };
+
+  // Cache for 5 minutes
+  await cache.set(cacheKey, result, 300);
+
+  res.json(result);
 });
 
 router.post(
@@ -42,6 +57,8 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const item = await Announcement.create(req.body);
+    // Clear announcement cache
+    await cache.clear('announcements:*');
     return res.status(201).json(item);
   }
 );
@@ -62,6 +79,8 @@ router.patch(
 
     const item = await Announcement.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!item) return res.status(404).json({ message: 'Announcement not found' });
+    // Clear announcement cache
+    await cache.clear('announcements:*');
     return res.json(item);
   }
 );
@@ -73,6 +92,8 @@ router.post(
   async (req, res) => {
     const item = await Announcement.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
     if (!item) return res.status(404).json({ message: 'Announcement not found' });
+    // Clear announcement cache
+    await cache.clear('announcements:*');
     return res.json(item);
   }
 );
