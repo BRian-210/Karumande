@@ -3,7 +3,9 @@ const nodemailer = require('nodemailer');
 
 const createTransporter = () => {
   const user = process.env.EMAIL_USER?.trim();
-  const pass = process.env.EMAIL_APP_PASSWORD?.trim();
+  // Support app-passwords pasted with spaces (e.g. "abcd efgh ijkl mnop")
+  const rawPass = process.env.EMAIL_APP_PASSWORD || '';
+  const pass = rawPass ? String(rawPass).trim().replace(/\s+/g, '') : '';
 
   if (!user || !pass) {
     console.warn('Email configuration incomplete: EMAIL_USER or EMAIL_APP_PASSWORD missing. Email sending is disabled.');
@@ -11,15 +13,19 @@ const createTransporter = () => {
   }
 
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,          // SSL port
-    secure: true,       // true for port 465
+    host: process.env.EMAIL_SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 465,
+    secure: process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : true,
     auth: { user, pass },
     tls: {
       rejectUnauthorized: false, // optional
     },
-    logger: true,  // logs SMTP traffic
-    debug: true,   // verbose output
+    // Timeouts to fail fast and produce clearer errors when network is blocking
+    connectionTimeout: 10000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
+    logger: process.env.NODE_ENV !== 'production',
+    debug: process.env.NODE_ENV !== 'production',
   });
 };
 
