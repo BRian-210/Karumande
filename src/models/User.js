@@ -82,7 +82,8 @@ const userSchema = new mongoose.Schema(
 // ======================== 
 userSchema.index({ role: 1 });
 userSchema.index({ children: 1 });
-userSchema.index({ email: 1 }); // For fast authentication lookups
+// Note: `email` field already declares `unique: true` which creates an index.
+// Avoid duplicate index declarations to prevent Mongoose warnings.
 
 // ========================
 // Virtuals & JSON transformation
