@@ -18,53 +18,69 @@ async function connectDB(uri = process.env.MONGO_URI) {
     return mongoose.connection;
   }
 
-  try {
-    const connectOptions = {
-      // Recommended modern options for high concurrency
-      maxPoolSize: 50, // Increased for high concurrency - maintain up to 50 socket connections
-      minPoolSize: 10, // Minimum number of connections in pool
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      serverSelectionTimeoutMS: 15000, // Keep trying to send operations for 15 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: false, // Disable buffering during initial connection
-      bufferMaxEntries: 0, // Disable mongoose buffering
-      // Connection monitoring
-      heartbeatFrequencyMS: 10000, // Check server every 10 seconds
-    };
+  // Retry loop with exponential backoff to handle transient network/DNS issues
+  const maxRetries = parseInt(process.env.MONGO_CONNECT_RETRIES || '5', 10);
+  const baseDelayMs = parseInt(process.env.MONGO_RETRY_DELAY_MS || '2000', 10);
 
-    await mongoose.connect(uri, connectOptions);
+  const connectOptions = {
+    // Recommended modern options for high concurrency
+    maxPoolSize: 50, // Maintain up to 50 socket connections
+    minPoolSize: 10, // Minimum number of connections in pool
+    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+    serverSelectionTimeoutMS: 15000, // Keep trying to send operations for 15 seconds
+    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    bufferCommands: false, // Disable buffering during initial connection
+    bufferMaxEntries: 0, // Disable mongoose buffering
+    // Connection monitoring
+    heartbeatFrequencyMS: 10000, // Check server every 10 seconds
+  };
 
-    const { host, port, name } = mongoose.connection;
-    console.log(`MongoDB connected successfully: ${name}@${host}:${port}`);
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      attempt += 1;
+      console.log(`Attempting MongoDB connection (attempt ${attempt}/${maxRetries + 1})`);
+      await mongoose.connect(uri, connectOptions);
 
-    // Event listeners for better monitoring
-    mongoose.connection.on('disconnected', () => {
-      console.warn('MongoDB disconnected! Attempting to reconnect...');
-    });
+      const { host, port, name } = mongoose.connection;
+      console.log(`MongoDB connected successfully: ${name}@${host}:${port}`);
 
-    mongoose.connection.on('reconnected', () => {
-      console.log('MongoDB reconnected successfully');
-    });
+      // Event listeners for better monitoring
+      mongoose.connection.on('disconnected', () => {
+        console.warn('MongoDB disconnected! Attempting to reconnect...');
+      });
 
-    mongoose.connection.on('error', (err) => {
-      console.error('MongoDB connection error:', err.message);
-    });
+      mongoose.connection.on('reconnected', () => {
+        console.log('MongoDB reconnected successfully');
+      });
 
-    return mongoose.connection;
-  } catch (error) {
-    console.error('Failed to connect to MongoDB:', {
-      message: error.message,
-      code: error.code,
-      codeName: error.codeName,
-    });
+      mongoose.connection.on('error', (err) => {
+        console.error('MongoDB connection error:', err.message);
+      });
 
-    // In production, you might want to exit or trigger a restart
-    if (process.env.NODE_ENV === 'production') {
-      console.error('Exiting process due to database connection failure');
-      process.exit(1);
+      return mongoose.connection;
+    } catch (error) {
+      console.error('Failed to connect to MongoDB (attempt ' + attempt + '):', error.message);
+
+      if (attempt > maxRetries) {
+        console.error('Exceeded maximum MongoDB connection attempts');
+        console.error('Last error details:', {
+          message: error.message,
+          code: error.code,
+          codeName: error.codeName,
+        });
+        if (process.env.NODE_ENV === 'production') {
+          console.error('Exiting process due to database connection failure');
+          // Give logs a moment to flush
+          setTimeout(() => process.exit(1), 100);
+        }
+        throw error;
+      }
+
+      const delay = baseDelayMs * attempt;
+      console.log(`Waiting ${delay}ms before next MongoDB connect retry...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
-
-    throw error; // Re-throw for caller to handle
   }
 }
 
