@@ -75,7 +75,13 @@ form.addEventListener('submit', async e => {
       })
     });
 
-    const data = await res.json();
+    const raw = await res.text();
+    let data = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = { message: raw || 'Request failed' };
+    }
 
     if (res.ok) {
       msg.textContent = "Password updated successfully! Redirecting...";
@@ -97,6 +103,8 @@ form.addEventListener('submit', async e => {
         setTimeout(() => {
           window.location.href = '/login.html'; // ← adjust path
         }, 2200);
+      } else if (res.status === 429) {
+        msg.textContent = data.message || "Too many requests. Please wait a minute and try again.";
       } else if (res.status === 400) {
         msg.textContent = data.message || data.errors?.[0]?.msg || "Invalid input.";
       } else {

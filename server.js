@@ -58,8 +58,8 @@ app.use(
         defaultSrc: ["'self'"],
         // Allow Google fonts and CDNJS (Font Awesome) for styles; keep 'unsafe-inline' for inline small styles
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-        // Explicitly allow these sources for style elements (fixes some browsers' stricter checks)
-        'style-src-elem': ["'self'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+        // Must match styleSrc: some browsers evaluate <style> against style-src-elem only
+        'style-src-elem': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
         // Allow inline style attributes (e.g., `style="display:none"`) used in some admin pages
         'style-src-attr': ["'self'", "'unsafe-inline'"] ,
         // Allow font files from Google and CDNJS (Font Awesome webfonts)
@@ -88,7 +88,7 @@ const apiMax = parseInt(process.env.API_RATE_LIMIT_MAX || '20000', 10);
 const limiter = rateLimit({
   windowMs: Number.isFinite(apiWindowMs) ? apiWindowMs : 15 * 60 * 1000,
   max: Number.isFinite(apiMax) ? apiMax : 20000,
-  message: 'Too many requests from this IP, please try again later.',
+  message: { message: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.path === '/api/health' || req.originalUrl.startsWith('/api/health'),
@@ -98,14 +98,17 @@ app.use('/api/', limiter); // Apply to API routes
 
 const authWindowMs = parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || `${15 * 60 * 1000}`, 10);
 const authMax = parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10);
-// Stricter rate limiting for auth routes
+// Stricter limit only for credential submission (not Bearer routes like change-password /me)
 const authLimiter = rateLimit({
   windowMs: Number.isFinite(authWindowMs) ? authWindowMs : 15 * 60 * 1000,
   max: Number.isFinite(authMax) ? authMax : 10,
-  message: 'Too many authentication attempts, please try again later.',
+  message: { message: 'Too many authentication attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-app.use('/api/auth/', authLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // ========================
 // Core Middleware
