@@ -82,21 +82,26 @@ app.use(
 // ========================
 app.use(compression()); // Enable gzip compression
 
-// Rate limiting - adjust limits based on your needs
+// Rate limiting — env-tunable (many users can share one IP, e.g. school Wi‑Fi)
+const apiWindowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || `${15 * 60 * 1000}`, 10);
+const apiMax = parseInt(process.env.API_RATE_LIMIT_MAX || '20000', 10);
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
+  windowMs: Number.isFinite(apiWindowMs) ? apiWindowMs : 15 * 60 * 1000,
+  max: Number.isFinite(apiMax) ? apiMax : 20000,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/api/health' || req.originalUrl.startsWith('/api/health'),
 });
 
 app.use('/api/', limiter); // Apply to API routes
 
+const authWindowMs = parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || `${15 * 60 * 1000}`, 10);
+const authMax = parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10);
 // Stricter rate limiting for auth routes
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 auth attempts per windowMs
+  windowMs: Number.isFinite(authWindowMs) ? authWindowMs : 15 * 60 * 1000,
+  max: Number.isFinite(authMax) ? authMax : 10,
   message: 'Too many authentication attempts, please try again later.',
 });
 
@@ -254,6 +259,16 @@ const startServer = async () => {
       console.log(`Frontend served from: ${path.join(__dirname, 'public')}`);
       console.log(`Admin Login: http://localhost:${PORT}/admin/login.html`);
     });
+
+    // Align with common load balancer / reverse proxy defaults (e.g. Render) and avoid hung sockets
+    const keepAliveMs = parseInt(process.env.SERVER_KEEP_ALIVE_TIMEOUT_MS || '65000', 10);
+    const headersMs = parseInt(process.env.SERVER_HEADERS_TIMEOUT_MS || '66000', 10);
+    const requestMs = parseInt(process.env.SERVER_REQUEST_TIMEOUT_MS || '120000', 10);
+    if (Number.isFinite(keepAliveMs)) server.keepAliveTimeout = keepAliveMs;
+    if (Number.isFinite(headersMs)) server.headersTimeout = headersMs;
+    if (Number.isFinite(requestMs) && typeof server.requestTimeout !== 'undefined') {
+      server.requestTimeout = requestMs;
+    }
 
     // Graceful Shutdown
     const gracefulShutdown = async (signal) => {

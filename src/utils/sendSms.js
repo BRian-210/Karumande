@@ -1,10 +1,5 @@
 // utils/sendSMS.js
 const AfricasTalking = require('africastalking');
-
-/**
- * Africa's Talking client instance
- * Initialized once and reused across requests
- */
 const initializeClient = () => {
   const apiKey = process.env.AT_API_KEY?.trim();
   const username = process.env.AT_USERNAME?.trim();

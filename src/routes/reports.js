@@ -13,37 +13,47 @@ const fs = require('fs');
 
 const router = express.Router();
 
+const CURSOR_BATCH = 200;
+
 router.get('/bills.csv', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
-  const bills = await Bill.find().populate('student', 'name classLevel');
-  const rows = ['Student,Class,Term,Amount,Balance,Status,UpdatedAt'];
-  bills.forEach((b) => {
-    rows.push(
-      `${safe(b.student?.name)},${safe(b.student?.classLevel)},${safe(b.term)},${b.amount},${b.balance},${b.status},${b.updatedAt.toISOString()}`
-    );
-  });
-  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="bills.csv"');
-  res.send(rows.join('\n'));
+  res.write('Student,Class,Term,Amount,Balance,Status,UpdatedAt\n');
+  const cursor = Bill.find().populate('student', 'name classLevel').cursor({ batchSize: CURSOR_BATCH });
+  for await (const b of cursor) {
+    res.write(
+      `${safe(b.student?.name)},${safe(b.student?.classLevel)},${safe(b.term)},${b.amount},${b.balance},${b.status},${b.updatedAt.toISOString()}\n`
+    );
+  }
+  res.end();
 });
 
 router.get('/payments.csv', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
-  const payments = await Payment.find().populate('student', 'name classLevel').populate('bill', 'term');
-  const rows = ['Student,Class,Term,Amount,Status,TransactionId,UpdatedAt'];
-  payments.forEach((p) => {
-    rows.push(
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="payments.csv"');
+  res.write('Student,Class,Term,Amount,Status,TransactionId,UpdatedAt\n');
+  const cursor = Payment.find()
+    .populate('student', 'name classLevel')
+    .populate('bill', 'term')
+    .cursor({ batchSize: CURSOR_BATCH });
+  for await (const p of cursor) {
+    res.write(
       `${safe(p.student?.name)},${safe(p.student?.classLevel)},${safe(p.bill?.term)},${p.amount},${p.status},${safe(
         p.transactionId
-      )},${p.updatedAt.toISOString()}`
+      )},${p.updatedAt.toISOString()}\n`
     );
-  });
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="payments.csv"');
-  res.send(rows.join('\n'));
+  }
+  res.end();
 });
 
 router.get('/bills.xlsx', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
-  const bills = await Bill.find().populate('student', 'name classLevel');
-  const wb = new ExcelJS.Workbook();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="bills.xlsx"');
+
+  const wb = new ExcelJS.stream.xlsx.WorkbookWriter({
+    stream: res,
+    useSharedStrings: true,
+  });
   const ws = wb.addWorksheet('Bills');
   ws.columns = [
     { header: 'Student', key: 'student', width: 24 },
@@ -53,10 +63,11 @@ router.get('/bills.xlsx', requireAuth, requireRole('admin', 'teacher'), async (r
     { header: 'Paid', key: 'amountPaid', width: 12 },
     { header: 'Balance', key: 'balance', width: 12 },
     { header: 'Status', key: 'status', width: 12 },
-    { header: 'Updated', key: 'updatedAt', width: 24 }
+    { header: 'Updated', key: 'updatedAt', width: 24 },
   ];
 
-  bills.forEach((b) =>
+  const cursor = Bill.find().populate('student', 'name classLevel').cursor({ batchSize: CURSOR_BATCH });
+  for await (const b of cursor) {
     ws.addRow({
       student: b.student?.name,
       classLevel: b.student?.classLevel,
@@ -65,14 +76,11 @@ router.get('/bills.xlsx', requireAuth, requireRole('admin', 'teacher'), async (r
       amountPaid: b.amountPaid,
       balance: b.balance,
       status: b.status,
-      updatedAt: b.updatedAt
-    })
-  );
-
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename="bills.xlsx"');
-  await wb.xlsx.write(res);
-  res.end();
+      updatedAt: b.updatedAt,
+    }).commit();
+  }
+  await ws.commit();
+  await wb.commit();
 });
 
 router.get('/payments/:id/receipt.pdf', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
@@ -170,13 +178,36 @@ function calcTotalsFromSubjects(subjects) {
   return { total, maxTotal };
 }
 
-// Helper: assemble a per-student report object for a given term
-async function buildStudentReport(student, term) {
-  const result = await Result.findOne({ student: student._id, term }).lean();
-  if (!result) return { student, term, subjects: [], total: 0, maxTotal: 0, percent: 0, grade: null };
+function studentReportFromResult(student, term, result) {
+  if (!result) return { student, term, subjects: [], total: 0, maxTotal: 0, percent: 0, grade: null, comments: undefined };
   const { total, maxTotal } = calcTotalsFromSubjects(result.subjects);
   const percent = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-  return { student, term, subjects: result.subjects || [], total, maxTotal, percent: Math.round(percent * 100) / 100, grade: calculateGrade(percent), comments: result.comments };
+  return {
+    student,
+    term,
+    subjects: result.subjects || [],
+    total,
+    maxTotal,
+    percent: Math.round(percent * 100) / 100,
+    grade: calculateGrade(percent),
+    comments: result.comments,
+  };
+}
+
+async function loadResultsByStudentId(studentIds, term) {
+  if (!studentIds.length) return new Map();
+  const results = await Result.find({ student: { $in: studentIds }, term }).lean();
+  const map = new Map();
+  for (const r of results) {
+    map.set(String(r.student), r);
+  }
+  return map;
+}
+
+// Helper: assemble a per-student report object for a given term (single DB round-trip when used alone)
+async function buildStudentReport(student, term) {
+  const result = await Result.findOne({ student: student._id, term }).lean();
+  return studentReportFromResult(student, term, result);
 }
 
 // ===== Class-wide report endpoints =====
@@ -185,11 +216,9 @@ router.get('/class/:classLevel/:term', requireAuth, requireRole('admin', 'teache
   try {
     const { classLevel, term } = req.params;
     const students = await Student.find({ classLevel, active: true }).lean();
-    const reports = [];
-    for (const s of students) {
-      const r = await buildStudentReport(s, term);
-      reports.push(r);
-    }
+    const ids = students.map((s) => s._id);
+    const byResult = await loadResultsByStudentId(ids, term);
+    const reports = students.map((s) => studentReportFromResult(s, term, byResult.get(String(s._id))));
     return res.json({ classLevel, term, count: reports.length, reports });
   } catch (err) {
     console.error('class report error:', err.message);
@@ -201,20 +230,16 @@ router.get('/class/:classLevel/:term', requireAuth, requireRole('admin', 'teache
 router.get('/admissions', requireAuth, requireRole('admin', 'teacher'), async (req, res) => {
   try {
     const { classLevel } = req.query;
-    const Admission = require('../models/Admission');
     let query = {};
     if (classLevel) query.classApplied = classLevel;
 
-    const admissions = await Admission.find(query).sort('-submittedAt').lean();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="admissions.xlsx"');
 
-    // Group by status
-    const byStatus = { pending: 0, approved: 0, rejected: 0 };
-    admissions.forEach(a => {
-      const status = a.status?.toLowerCase() || 'pending';
-      byStatus[status] = (byStatus[status] || 0) + 1;
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: res,
+      useSharedStrings: true,
     });
-
-    const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Admissions');
     ws.columns = [
       { header: 'Student Name', key: 'studentName', width: 24 },
@@ -222,24 +247,22 @@ router.get('/admissions', requireAuth, requireRole('admin', 'teacher'), async (r
       { header: 'Email', key: 'email', width: 24 },
       { header: 'Class Applied', key: 'classApplied', width: 16 },
       { header: 'Status', key: 'status', width: 12 },
-      { header: 'Submitted', key: 'submittedAt', width: 20 }
+      { header: 'Submitted', key: 'submittedAt', width: 20 },
     ];
 
-    admissions.forEach(a => {
+    const cursor = Admission.find(query).sort('-submittedAt').cursor({ batchSize: CURSOR_BATCH });
+    for await (const a of cursor) {
       ws.addRow({
         studentName: a.studentName,
         parentName: a.parentName,
         email: a.email,
         classApplied: a.classApplied,
         status: a.status,
-        submittedAt: new Date(a.submittedAt).toLocaleDateString()
-      });
-    });
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="admissions.xlsx"');
-    await wb.xlsx.write(res);
-    res.end();
+        submittedAt: new Date(a.submittedAt).toLocaleDateString(),
+      }).commit();
+    }
+    await ws.commit();
+    await wb.commit();
   } catch (err) {
     console.error('admissions report error:', err.message);
     return res.status(500).json({ message: err.message });
@@ -304,9 +327,13 @@ router.get('/fees', requireAuth, requireRole('admin', 'teacher'), async (req, re
       billQuery.student = { $in: students.map(s => s._id) };
     }
 
-    const bills = await Bill.find(billQuery).populate('student', 'name classLevel').lean();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="fees.xlsx"');
 
-    const wb = new ExcelJS.Workbook();
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: res,
+      useSharedStrings: true,
+    });
     const ws = wb.addWorksheet('Fees');
     ws.columns = [
       { header: 'Student', key: 'student', width: 24 },
@@ -315,10 +342,11 @@ router.get('/fees', requireAuth, requireRole('admin', 'teacher'), async (req, re
       { header: 'Amount', key: 'amount', width: 12 },
       { header: 'Paid', key: 'amountPaid', width: 12 },
       { header: 'Balance', key: 'balance', width: 12 },
-      { header: 'Status', key: 'status', width: 12 }
+      { header: 'Status', key: 'status', width: 12 },
     ];
 
-    bills.forEach(b => {
+    const cursor = Bill.find(billQuery).populate('student', 'name classLevel').cursor({ batchSize: CURSOR_BATCH });
+    for await (const b of cursor) {
       ws.addRow({
         student: b.student?.name,
         classLevel: b.student?.classLevel,
@@ -326,14 +354,11 @@ router.get('/fees', requireAuth, requireRole('admin', 'teacher'), async (req, re
         amount: b.amount,
         amountPaid: b.amountPaid,
         balance: b.balance,
-        status: b.status
-      });
-    });
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="fees.xlsx"');
-    await wb.xlsx.write(res);
-    res.end();
+        status: b.status,
+      }).commit();
+    }
+    await ws.commit();
+    await wb.commit();
   } catch (err) {
     console.error('fees report error:', err.message);
     return res.status(500).json({ message: err.message });
@@ -349,9 +374,13 @@ router.get('/payments', requireAuth, requireRole('admin', 'teacher'), async (req
       paymentQuery.student = { $in: students.map(s => s._id) };
     }
 
-    const payments = await Payment.find(paymentQuery).populate('student', 'name classLevel').populate('bill', 'term').lean();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="payments.xlsx"');
 
-    const wb = new ExcelJS.Workbook();
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: res,
+      useSharedStrings: true,
+    });
     const ws = wb.addWorksheet('Payments');
     ws.columns = [
       { header: 'Student', key: 'student', width: 24 },
@@ -360,10 +389,14 @@ router.get('/payments', requireAuth, requireRole('admin', 'teacher'), async (req
       { header: 'Amount', key: 'amount', width: 12 },
       { header: 'Status', key: 'status', width: 12 },
       { header: 'Transaction ID', key: 'transactionId', width: 20 },
-      { header: 'Date', key: 'updatedAt', width: 20 }
+      { header: 'Date', key: 'updatedAt', width: 20 },
     ];
 
-    payments.forEach(p => {
+    const cursor = Payment.find(paymentQuery)
+      .populate('student', 'name classLevel')
+      .populate('bill', 'term')
+      .cursor({ batchSize: CURSOR_BATCH });
+    for await (const p of cursor) {
       ws.addRow({
         student: p.student?.name,
         classLevel: p.student?.classLevel,
@@ -371,14 +404,11 @@ router.get('/payments', requireAuth, requireRole('admin', 'teacher'), async (req
         amount: p.amount,
         status: p.status,
         transactionId: p.transactionId,
-        updatedAt: new Date(p.updatedAt).toLocaleDateString()
-      });
-    });
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="payments.xlsx"');
-    await wb.xlsx.write(res);
-    res.end();
+        updatedAt: new Date(p.updatedAt).toLocaleDateString(),
+      }).commit();
+    }
+    await ws.commit();
+    await wb.commit();
   } catch (err) {
     console.error('payments report error:', err.message);
     return res.status(500).json({ message: err.message });
@@ -392,59 +422,60 @@ router.get('/results', requireAuth, requireRole('admin', 'teacher'), async (req,
     if (classLevel) studentQuery.classLevel = classLevel;
 
     const students = await Student.find(studentQuery).lean();
-    let resultQuery = {};
-    if (term) resultQuery.term = term;
+    const ids = students.map((s) => s._id);
+    const studentsById = new Map(students.map((s) => [String(s._id), s]));
 
-    let allResults = [];
-    for (const s of students) {
-      let query = { student: s._id, ...resultQuery };
-      const results = await Result.find(query).lean();
-      results.forEach(r => {
-        allResults.push({
-          student: s,
-          term: r.term,
-          subjects: r.subjects,
-          total: r.total,
-          maxTotal: r.maxTotal,
-          grade: r.grade,
-          comments: r.comments
-        });
+    let resultQuery = { student: { $in: ids } };
+    if (term) resultQuery.term = term;
+    const allResultDocs = ids.length ? await Result.find(resultQuery).lean() : [];
+
+    const allResults = [];
+    for (const r of allResultDocs) {
+      const s = studentsById.get(String(r.student));
+      if (!s) continue;
+      allResults.push({
+        student: s,
+        term: r.term,
+        subjects: r.subjects,
+        total: r.total,
+        maxTotal: r.maxTotal,
+        grade: r.grade,
+        comments: r.comments,
       });
     }
 
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Results');
-    
-    // Get all unique subjects from all results
     const allSubjects = new Set();
-    allResults.forEach(r => {
-      r.subjects.forEach(s => allSubjects.add(s.name));
+    allResults.forEach((r) => {
+      (r.subjects || []).forEach((s) => allSubjects.add(s.name));
     });
     const subjectList = Array.from(allSubjects).sort();
-    
-    // Build columns: Student, Class, Term, [Subject1, Subject2, ...], Total, Max, Percent, Grade
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="results.xlsx"');
+
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: res,
+      useSharedStrings: true,
+    });
+    const ws = wb.addWorksheet('Results');
+
     const columns = [
       { header: 'Student', key: 'student', width: 24 },
       { header: 'Class', key: 'classLevel', width: 16 },
-      { header: 'Term', key: 'term', width: 12 }
+      { header: 'Term', key: 'term', width: 12 },
     ];
-    
-    // Add subject columns
-    subjectList.forEach(subj => {
+    subjectList.forEach((subj) => {
       columns.push({ header: subj, key: `subj_${subj}`, width: 10 });
     });
-    
-    // Add summary columns
     columns.push(
       { header: 'Total Score', key: 'total', width: 12 },
       { header: 'Max Score', key: 'maxTotal', width: 12 },
       { header: 'Percent', key: 'percent', width: 10 },
       { header: 'Grade', key: 'grade', width: 10 }
     );
-    
     ws.columns = columns;
 
-    allResults.forEach(r => {
+    for (const r of allResults) {
       const percent = r.maxTotal > 0 ? Math.round((r.total / r.maxTotal) * 100 * 100) / 100 : 0;
       const row = {
         student: r.student.name,
@@ -452,23 +483,17 @@ router.get('/results', requireAuth, requireRole('admin', 'teacher'), async (req,
         term: r.term,
         total: r.total,
         maxTotal: r.maxTotal,
-        percent: percent,
-        grade: r.grade
+        percent,
+        grade: r.grade,
       };
-      
-      // Fill in subject scores
-      subjectList.forEach(subj => {
-        const subjectData = r.subjects.find(s => s.name === subj);
+      subjectList.forEach((subj) => {
+        const subjectData = (r.subjects || []).find((s) => s.name === subj);
         row[`subj_${subj}`] = subjectData ? `${subjectData.score}/${subjectData.maxScore || 100}` : '-';
       });
-      
-      ws.addRow(row);
-    });
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="results.xlsx"');
-    await wb.xlsx.write(res);
-    res.end();
+      ws.addRow(row).commit();
+    }
+    await ws.commit();
+    await wb.commit();
   } catch (err) {
     console.error('results report error:', err.message);
     return res.status(500).json({ message: err.message });
@@ -480,6 +505,9 @@ router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admi
     const { classLevel, term } = req.params;
     const students = await Student.find({ classLevel, active: true }).lean();
     if (!students || students.length === 0) return res.status(404).json({ message: 'No students found for this class' });
+
+    const studentIds = students.map((s) => s._id);
+    const resultsByStudent = await loadResultsByStudentId(studentIds, term);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="report-${classLevel}-${term}.pdf"`);
@@ -502,7 +530,7 @@ router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admi
 
     const summaries = [];
     for (const s of students) {
-      const report = await buildStudentReport(s, term);
+      const report = studentReportFromResult(s, term, resultsByStudent.get(String(s._id)));
       summaries.push({ name: s.name, admissionNumber: s.admissionNumber, percent: report.percent, grade: report.grade });
     }
 
@@ -516,7 +544,7 @@ router.get('/class/:classLevel/:term/report.pdf', requireAuth, requireRole('admi
     // Per-student pages
     for (let i = 0; i < students.length; i++) {
       const s = students[i];
-      const r = await buildStudentReport(s, term);
+      const r = studentReportFromResult(s, term, resultsByStudent.get(String(s._id)));
       renderHeader(doc, `${s.name} — ${s.classLevel}`);
       doc.fontSize(12).text(`Admission No: ${s.admissionNumber || '-'}`);
       doc.fontSize(12).text(`Term: ${term}`);

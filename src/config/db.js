@@ -22,16 +22,20 @@ async function connectDB(uri = process.env.MONGO_URI) {
   const maxRetries = parseInt(process.env.MONGO_CONNECT_RETRIES || '5', 10);
   const baseDelayMs = parseInt(process.env.MONGO_RETRY_DELAY_MS || '2000', 10);
 
+  const maxPool = parseInt(process.env.MONGO_MAX_POOL_SIZE || '100', 10);
+  const minPool = parseInt(process.env.MONGO_MIN_POOL_SIZE || '5', 10);
+  const maxPoolSize = Number.isFinite(maxPool) ? Math.min(Math.max(maxPool, 1), 500) : 100;
+  const minPoolSize = Number.isFinite(minPool) ? Math.min(Math.max(minPool, 0), maxPoolSize) : 5;
+
   const connectOptions = {
-    // Recommended modern options for high concurrency
-    maxPoolSize: 50, // Maintain up to 50 socket connections
-    minPoolSize: 10, // Minimum number of connections in pool
-    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-    serverSelectionTimeoutMS: 15000, // Keep trying to send operations for 15 seconds
-    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-    bufferCommands: false, // Disable buffering during initial connection
-    // Connection monitoring
-    heartbeatFrequencyMS: 10000, // Check server every 10 seconds
+    // Pool size: tune per Atlas tier; each app instance has its own pool.
+    maxPoolSize,
+    minPoolSize,
+    maxIdleTimeMS: 30000,
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    bufferCommands: false,
+    heartbeatFrequencyMS: 10000,
   };
 
   let attempt = 0;
@@ -42,7 +46,9 @@ async function connectDB(uri = process.env.MONGO_URI) {
       await mongoose.connect(uri, connectOptions);
 
       const { host, port, name } = mongoose.connection;
-      console.log(`MongoDB connected successfully: ${name}@${host}:${port}`);
+      console.log(
+        `MongoDB connected successfully: ${name}@${host}:${port} (pool min=${connectOptions.minPoolSize} max=${connectOptions.maxPoolSize})`
+      );
 
       // Event listeners for better monitoring
       mongoose.connection.on('disconnected', () => {

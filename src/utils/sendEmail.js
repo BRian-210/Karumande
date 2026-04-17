@@ -80,9 +80,20 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 // Verify transporter on startup
 if (process.env.NODE_ENV !== 'test') {
   if (transporter) {
+    const smtpHost = process.env.EMAIL_SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 465;
+    const smtpSecure = process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : true;
     transporter.verify((error) => {
       if (error) {
-        console.error('Email transporter configuration error:', error);
+        console.error('Email transporter configuration error:', error, {
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpSecure,
+          hint:
+            error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED'
+              ? 'Cannot reach SMTP (firewall, wrong host/port, or blocked outbound). Try EMAIL_SMTP_PORT=587 and EMAIL_SMTP_SECURE=false for STARTTLS, or allow outbound SMTP from this network.'
+              : undefined,
+        });
       } else {
         console.log('Email transporter ready – SMTP connection verified');
       }
