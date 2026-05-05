@@ -1,16 +1,14 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const GalleryImage = require('../models/GalleryImage');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { galleryImages } = require('../data/repositories');
 
 const router = express.Router();
 
 // GET all active gallery images (public)
 router.get('/', async (req, res) => {
   try {
-    const images = await GalleryImage.find({ active: true })
-      .sort({ createdAt: -1 })
-      .select('_id title description imageUrl createdAt');
+    const images = await galleryImages.listActive();
 
     res.json({ data: images });
   } catch (err) {
@@ -37,7 +35,7 @@ router.post(
     try {
       const { imageUrl, title, description } = req.body;
 
-      const image = await GalleryImage.create({
+      const image = await galleryImages.create({
         imageUrl,
         title: title || '',
         description: description || '',
@@ -62,11 +60,7 @@ router.delete(
   requireRole('admin'),
   async (req, res) => {
     try {
-      const image = await GalleryImage.findByIdAndUpdate(
-        req.params.id,
-        { active: false },
-        { new: true }
-      );
+      const image = await galleryImages.update(req.params.id, { active: false });
 
       if (!image) {
         return res.status(404).json({ message: 'Image not found' });

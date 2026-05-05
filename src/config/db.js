@@ -1,107 +1,87 @@
 // src/config/db.js
-const mongoose = require('mongoose');
+const postgres = require('postgres');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-/**
- * Connects to MongoDB with enhanced options and proper event handling
- * @param {string} uri - MongoDB connection string (from process.env.MONGO_URI)
- * @returns {Promise<mongoose.Connection>} The active Mongoose connection
- * @throws {Error} If connection fails or URI is missing
- */
-async function connectDB(uri = process.env.MONGO_URI) {
-  if (!uri) {
-    throw new Error('MONGO_URI is not defined in environment variables');
-  }
+const connectionString = process.env.DATABASE_URL;
 
-  // Prevent multiple connections in development (Hot Reload issues)
-  if (mongoose.connection.readyState === 1) {
-    console.log('MongoDB already connected');
-    return mongoose.connection;
-  }
-
-  // Retry loop with exponential backoff to handle transient network/DNS issues
-  const maxRetries = parseInt(process.env.MONGO_CONNECT_RETRIES || '5', 10);
-  const baseDelayMs = parseInt(process.env.MONGO_RETRY_DELAY_MS || '2000', 10);
-
-  const maxPool = parseInt(process.env.MONGO_MAX_POOL_SIZE || '100', 10);
-  const minPool = parseInt(process.env.MONGO_MIN_POOL_SIZE || '5', 10);
-  const maxPoolSize = Number.isFinite(maxPool) ? Math.min(Math.max(maxPool, 1), 500) : 100;
-  const minPoolSize = Number.isFinite(minPool) ? Math.min(Math.max(minPool, 0), maxPoolSize) : 5;
-
-  const connectOptions = {
-    // Pool size: tune per Atlas tier; each app instance has its own pool.
-    maxPoolSize,
-    minPoolSize,
-    maxIdleTimeMS: 30000,
-    serverSelectionTimeoutMS: 15000,
-    socketTimeoutMS: 45000,
-    bufferCommands: false,
-    heartbeatFrequencyMS: 10000,
-  };
-
-  let attempt = 0;
-  while (attempt <= maxRetries) {
-    try {
-      attempt += 1;
-      console.log(`Attempting MongoDB connection (attempt ${attempt}/${maxRetries + 1})`);
-      await mongoose.connect(uri, connectOptions);
-
-      const { host, port, name } = mongoose.connection;
-      console.log(
-        `MongoDB connected successfully: ${name}@${host}:${port} (pool min=${connectOptions.minPoolSize} max=${connectOptions.maxPoolSize})`
-      );
-
-      // Event listeners for better monitoring
-      mongoose.connection.on('disconnected', () => {
-        console.warn('MongoDB disconnected! Attempting to reconnect...');
-      });
-
-      mongoose.connection.on('reconnected', () => {
-        console.log('MongoDB reconnected successfully');
-      });
-
-      mongoose.connection.on('error', (err) => {
-        console.error('MongoDB connection error:', err.message);
-      });
-
-      return mongoose.connection;
-    } catch (error) {
-      console.error('Failed to connect to MongoDB (attempt ' + attempt + '):', error.message);
-
-      if (attempt > maxRetries) {
-        console.error('Exceeded maximum MongoDB connection attempts');
-        console.error('Last error details:', {
-          message: error.message,
-          code: error.code,
-          codeName: error.codeName,
-        });
-        if (process.env.NODE_ENV === 'production') {
-          console.error('Exiting process due to database connection failure');
-          // Give logs a moment to flush
-          setTimeout(() => process.exit(1), 100);
-        }
-        throw error;
-      }
-
-      const delay = baseDelayMs * attempt;
-      console.log(`Waiting ${delay}ms before next MongoDB connect retry...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
+if (!connectionString) {
+  console.error('❌ DATABASE_URL is missing in .env file');
+  process.exit(1);
 }
 
-/**
- * Gracefully close MongoDB connection
- * Useful during server shutdown
- */
+console.log('✅ DATABASE_URL loaded successfully');
+
+// ========================
+// Simple postgres client (for quick queries)
+// ========================
+const sql = postgres(connectionString, {
+  ssl: true,
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 15,
+});
+
+// ========================
+// pg Pool (for transactions and heavy use)
+// ========================
+let pool = null;
+
+async function connectDB() {
+  if (pool) return pool;
+
+  console.log('🔄 Connecting to database pool...');
+
+  pool = new Pool({
+    connectionString,
+    max: 15,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 20000,
+    ssl: { rejectUnauthorized: false },
+    family: 4,                    // Force IPv4
+    application_name: 'karumande-school',
+  });
+
+  const client = await pool.connect();
+  client.release();
+  console.log('✅ Database Pool Connected Successfully');
+  return pool;
+}
+
 async function disconnectDB() {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-    console.log('MongoDB connection closed gracefully');
+  if (pool) {
+    await pool.end();
+    pool = null;
+    console.log('🛑 Database pool closed');
   }
 }
 
+function getDB() {
+  if (!pool) {
+    throw new Error('Database pool not initialized. Call connectDB() first.');
+  }
+  return pool;
+}
+
+// Test connection
+async function testConnection() {
+  try {
+    const [result] = await sql`SELECT current_database() as db`;
+    console.log(`✅ Connected to Supabase Database: ${result.db}`);
+  } catch (err) {
+    console.error('❌ Test connection failed:', err.message);
+  }
+}
+
+testConnection();
+
+// ========================
+// Exports
+// ========================
 module.exports = {
+  sql,           // Simple client
   connectDB,
   disconnectDB,
-  mongoose, // Optional: export if needed elsewhere
+  getDB,         // ← Important for repositories.js
+  pool
 };

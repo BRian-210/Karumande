@@ -1,11 +1,11 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const Student = require('../models/Student');
 const fs = require('fs');
 const path = require('path');
 const { requireAuth } = require('../middleware/auth');
+const { users, students } = require('../data/repositories');
 
 const router = express.Router();
 
@@ -52,15 +52,15 @@ router.post('/register', registerValidation, async (req, res) => {
 
   const { name, email, password } = req.body;
 
-  const exists = await User.findOne({ email: email.toLowerCase() });
+  const exists = await users.findByEmail(email.toLowerCase());
   if (exists) {
     return res.status(409).json({ message: 'Email already registered' });
   }
 
-  const user = await User.create({
+  const user = await users.create({
     name,
     email: email.toLowerCase(),
-    passwordHash: password, // hashed by model hook
+    passwordHash: password,
     role: 'parent',
   });
 
@@ -99,12 +99,12 @@ router.post(
 
     const { name, email, password } = req.body;
 
-    const exists = await User.findOne({ email: email.toLowerCase() });
+    const exists = await users.findByEmail(email.toLowerCase());
     if (exists) {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    const teacher = await User.create({
+    const teacher = await users.create({
       name,
       email: email.toLowerCase(),
       passwordHash: password,
@@ -146,7 +146,7 @@ router.post(
     if (!process.env.ADMIN_INVITE_CODE) {
       return res.status(500).json({ message: 'ADMIN_INVITE_CODE is not configured' });
     }
-    const adminCount = await User.countDocuments({ role: 'admin', isActive: true });
+    const adminCount = await users.countActiveAdmins();
 
     if (adminCount > 0) {
       const authHeader = req.headers.authorization || '';
@@ -164,7 +164,7 @@ router.post(
       }
 
       const requesterId = payload.sub || payload.id || payload.userId;
-      const requester = await User.findById(requesterId).select('role isActive');
+      const requester = await users.findById(requesterId);
       if (!requester || !requester.isActive || requester.role !== 'admin') {
         return res.status(403).json({ message: 'Admin authentication required' });
       }
@@ -175,17 +175,17 @@ router.post(
       return res.status(403).json({ message: 'Invalid invite code' });
     }
 
-    const exists = await User.findOne({ email: email.toLowerCase() });
+    const exists = await users.findByEmail(email.toLowerCase());
     if (exists) {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    const admin = await User.create({
+    const admin = await users.create({
       name,
       email: email.toLowerCase(),
       passwordHash: password,
       role: 'admin',
-      mustChangePassword: false,
+      mustChangePassword: true,
     });
 
     res.status(201).json({
@@ -215,13 +215,16 @@ router.post('/login', loginValidation, async (req, res) => {
 
   if (admissionNo) {
     const search = admissionNo.toString().trim();
-    let student = await Student.findOne({ admissionNumber: search });
+    const student = await students.findByAdmissionNumber(search);
 
     if (!student) {
       return res.status(401).json({ message: 'Invalid admission number or password' });
     }
 
-    user = await User.findById(student.parent).select('+passwordHash');
+    user = await users.findById(
+      typeof student.parent === 'object' ? student.parent.id : student.parent,
+      { includePasswordHash: true }
+    );
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid admission number or password' });
@@ -247,14 +250,14 @@ router.post('/login', loginValidation, async (req, res) => {
       console.error('Audit log error:', err.message);
     }
   } else {
-    user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
+    user = await users.findByEmail(email.toLowerCase(), { includePasswordHash: true });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
   }
 
-  const validPassword = await user.comparePassword(password);
+  const validPassword = await bcrypt.compare(password, user.passwordHash || '');
   if (!validPassword) {
     return res.status(401).json({ message: 'Invalid email or password' });
   }
@@ -265,8 +268,7 @@ router.post('/login', loginValidation, async (req, res) => {
     { expiresIn: '1h' }
   );
 
-  user.lastLoginAt = new Date();
-  await user.save();
+  await users.updateLastLogin(user.id);
 
   res.json({
     token,
@@ -284,13 +286,18 @@ router.post('/login', loginValidation, async (req, res) => {
    CURRENT USER
 ====================================================== */
 
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await users.findById(req.user.id);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
   res.json({
     user: {
-      id: req.user.id,
-      email: req.user.email,
-      role: req.user.role,
-      name: req.user.name,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      mustChangePassword: user.mustChangePassword,
     },
   });
 });
@@ -315,20 +322,18 @@ router.post(
     const { currentPassword, newPassword } = req.body;
 
     // We need the password hash → include it explicitly
-    const user = await User.findById(req.user.id).select('+passwordHash');
+    const user = await users.findById(req.user.id, { includePasswordHash: true });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const match = await user.comparePassword(currentPassword);
+    const match = await bcrypt.compare(currentPassword, user.passwordHash || '');
     if (!match) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
-    user.passwordHash = newPassword;           // pre-save hook will hash it
-    user.mustChangePassword = false;
-    await user.save();
+    await users.updatePassword(user.id, newPassword, { mustChangePassword: false });
 
     res.json({ message: 'Password changed successfully' });
   }

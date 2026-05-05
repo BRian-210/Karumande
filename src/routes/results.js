@@ -1,66 +1,76 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Result = require('../models/Result');
-const Student = require('../models/Student');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { TERMS, validatePagination } = require('../constants/school');
+const { results, students, resultDueDates } = require('../data/repositories');
 
 const router = express.Router();
 
+async function ensureTeacherCanEdit({ role, classLevel, term, subjects }) {
+  if (role !== 'teacher') return null;
+  const now = new Date();
+  const [classDueDate, ...subjectDueDates] = await Promise.all([
+    resultDueDates.findOne({ classLevel, term, subject: null }),
+    resultDueDates.findList({ classLevel, term, subjects }),
+  ]);
+  const allDueDates = [classDueDate, ...subjectDueDates].filter(Boolean);
+  const locked = allDueDates.find((item) => new Date(item.dueDate) < now);
+  if (!locked) return null;
+  return `Submission deadline has passed for ${classLevel} - ${term}. Only admins can edit results now.`;
+}
+
 router.get('/', requireAuth, async (req, res) => {
   const { page, limit, skip } = validatePagination(req.query);
-  const filter = {};
-  if (req.query.term) filter.term = req.query.term;
-  if (req.query.studentId) filter.student = req.query.studentId;
+  const filters = { limit, offset: skip };
+  if (req.query.term) filters.term = req.query.term;
 
-  // Support filtering by classLevel (via student's classLevel)
   if (req.query.classLevel || req.query.class) {
     const classLevel = req.query.classLevel || req.query.class;
-    const studentsInClass = await Student.find({ 
-      classLevel: classLevel,
-      active: true 
-    }).distinct('_id');
-    
-    if (studentsInClass.length === 0) {
+    const studentsInClass = await students.list({ classLevel, active: true, limit: 1000, offset: 0 });
+    const ids = studentsInClass.map((student) => student.id);
+    if (!ids.length) {
       return res.json({ data: [], page, limit, total: 0 });
     }
-    
-    if (filter.student) {
-      // If already filtering by studentId, intersect
-      const existingIds = Array.isArray(filter.student.$in) ? filter.student.$in : [filter.student];
-      filter.student = { $in: existingIds.filter(id => studentsInClass.includes(id)) };
-    } else {
-      filter.student = { $in: studentsInClass };
-    }
+    filters.studentIds = ids;
+  }
+
+  if (req.query.studentId) {
+    filters.studentId = req.query.studentId;
   }
 
   if (req.user.role === 'parent') {
-    const studentIds = await Student.find({ parent: req.user.id }).distinct('_id');
-    filter.student = filter.student ? filter.student : { $in: studentIds };
+    const ownedStudentIds = await students.distinctIdsByParent(req.user.id);
+    if (!ownedStudentIds.length) {
+      return res.json({ data: [], page, limit, total: 0 });
+    }
+    if (filters.studentId && !ownedStudentIds.includes(filters.studentId)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    if (filters.studentIds?.length) {
+      filters.studentIds = filters.studentIds.filter((id) => ownedStudentIds.includes(id));
+    } else {
+      filters.studentIds = ownedStudentIds;
+    }
   }
 
-  const [items, total] = await Promise.all([
-    Result.find(filter).populate('student', 'name classLevel parent admissionNumber').skip(skip).limit(limit),
-    Result.countDocuments(filter)
-  ]);
+  const [items, total] = await Promise.all([results.list(filters), results.count(filters)]);
   return res.json({ data: items, page, limit, total });
 });
 
-// GET single result by ID
 router.get('/:id', requireAuth, async (req, res) => {
-  const result = await Result.findById(req.params.id).populate('student', 'name classLevel parent admissionNumber');
+  const result = await results.findById(req.params.id);
   if (!result) {
     return res.status(404).json({ message: 'Result not found' });
   }
-  
-  // Parents can only view their own children's results
+
   if (req.user.role === 'parent') {
-    const studentIds = await Student.find({ parent: req.user.id }).distinct('_id');
-    if (!studentIds.includes(result.student._id)) {
+    const ownedStudentIds = await students.distinctIdsByParent(req.user.id);
+    const studentId = typeof result.student === 'object' ? result.student.id : result.student;
+    if (!ownedStudentIds.includes(studentId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
   }
-  
+
   return res.json(result);
 });
 
@@ -69,62 +79,40 @@ router.post(
   requireAuth,
   requireRole('admin', 'teacher'),
   [
-    body('studentId').isString(),
+    body('studentId').isUUID(),
     body('term').isIn(TERMS),
     body('subjects').isArray({ min: 1 }),
     body('subjects.*.name').isString().trim().notEmpty(),
-    body('subjects.*.score').isNumeric()
+    body('subjects.*.score').isNumeric(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { studentId, term, subjects, grade, comments } = req.body;
-    const student = await Student.findById(studentId);
+    const student = await students.findById(studentId);
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
-    // Check due date for teachers (admins can always edit)
-    if (req.user.role === 'teacher') {
-      const ResultDueDate = require('../models/ResultDueDate');
-      const now = new Date();
-      
-      // Check for class-level due date
-      const classDueDate = await ResultDueDate.findOne({
-        classLevel: student.classLevel,
-        term,
-        subject: null
-      });
-      
-      // Check for subject-specific due date (if any subject matches)
-      const subjectDueDates = await ResultDueDate.find({
-        classLevel: student.classLevel,
-        term,
-        subject: { $in: subjects.map(s => s.name) }
-      });
-      
-      const allDueDates = [classDueDate, ...subjectDueDates].filter(Boolean);
-      
-      for (const dueDateDoc of allDueDates) {
-        if (new Date(dueDateDoc.dueDate) < now) {
-          return res.status(403).json({ 
-            message: `Submission deadline has passed for ${student.classLevel} - ${term}. Only admins can edit results now.` 
-          });
-        }
-      }
+    const dueDateMessage = await ensureTeacherCanEdit({
+      role: req.user.role,
+      classLevel: student.classLevel,
+      term,
+      subjects: subjects.map((subject) => subject.name),
+    });
+    if (dueDateMessage) {
+      return res.status(403).json({ message: dueDateMessage });
     }
 
-    const total = subjects.reduce((sum, s) => sum + Number(s.score || 0), 0);
-
-    try {
-      const result = await Result.findOneAndUpdate(
-        { student: studentId, term },
-        { student: studentId, term, subjects, total, grade, comments },
-        { new: true, upsert: true }
-      );
-      return res.status(201).json(result);
-    } catch (err) {
-      return res.status(500).json({ message: err.message });
-    }
+    const total = subjects.reduce((sum, subject) => sum + Number(subject.score || 0), 0);
+    const result = await results.upsert({
+      student: studentId,
+      term,
+      subjects,
+      total,
+      grade,
+      comments,
+    });
+    return res.status(201).json(result);
   }
 );
 
@@ -135,54 +123,37 @@ router.patch(
   [
     body('subjects').optional().isArray(),
     body('subjects.*.name').optional().isString().trim(),
-    body('subjects.*.score').optional().isNumeric()
+    body('subjects.*.score').optional().isNumeric(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const doc = await Result.findById(req.params.id).populate('student', 'classLevel');
+    const doc = await results.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: 'Result not found' });
 
-    // Check due date for teachers (admins can always edit)
-    if (req.user.role === 'teacher') {
-      const ResultDueDate = require('../models/ResultDueDate');
-      const now = new Date();
-      
-      // Check for class-level due date
-      const classDueDate = await ResultDueDate.findOne({
-        classLevel: doc.student.classLevel,
-        term: doc.term,
-        subject: null
-      });
-      
-      // Check for subject-specific due date
-      const subjectsToCheck = req.body.subjects ? req.body.subjects.map(s => s.name) : doc.subjects.map(s => s.name);
-      const subjectDueDates = await ResultDueDate.find({
-        classLevel: doc.student.classLevel,
-        term: doc.term,
-        subject: { $in: subjectsToCheck }
-      });
-      
-      const allDueDates = [classDueDate, ...subjectDueDates].filter(Boolean);
-      
-      for (const dueDateDoc of allDueDates) {
-        if (new Date(dueDateDoc.dueDate) < now) {
-          return res.status(403).json({ 
-            message: `Submission deadline has passed for ${doc.student.classLevel} - ${doc.term}. Only admins can edit results now.` 
-          });
-        }
-      }
+    const student = typeof doc.student === 'object' ? doc.student : await students.findById(doc.student);
+    const subjectsToCheck = req.body.subjects ? req.body.subjects.map((item) => item.name) : (doc.subjects || []).map((item) => item.name);
+    const dueDateMessage = await ensureTeacherCanEdit({
+      role: req.user.role,
+      classLevel: student.classLevel,
+      term: doc.term,
+      subjects: subjectsToCheck,
+    });
+    if (dueDateMessage) {
+      return res.status(403).json({ message: dueDateMessage });
     }
 
+    const patch = {};
     if (req.body.subjects) {
-      doc.subjects = req.body.subjects;
-      doc.total = req.body.subjects.reduce((sum, s) => sum + Number(s.score || 0), 0);
+      patch.subjects = req.body.subjects;
+      patch.total = req.body.subjects.reduce((sum, subject) => sum + Number(subject.score || 0), 0);
     }
-    if (req.body.grade !== undefined) doc.grade = req.body.grade;
-    if (req.body.comments !== undefined) doc.comments = req.body.comments;
-    await doc.save();
-    return res.json(doc);
+    if (req.body.grade !== undefined) patch.grade = req.body.grade;
+    if (req.body.comments !== undefined) patch.comments = req.body.comments;
+
+    const updated = await results.update(doc.id, patch);
+    return res.json(updated);
   }
 );
 

@@ -2,8 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const SiteConfig = require('../models/SiteConfig');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { siteConfigs } = require('../data/repositories');
 
 const router = express.Router();
 
@@ -38,7 +38,7 @@ router.post('/logo', requireAuth, requireRole('admin'), upload.single('logo'), a
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const publicPath = `/uploads/${req.file.filename}`;
-    await SiteConfig.findOneAndUpdate({ key: 'logoPath' }, { value: publicPath }, { upsert: true });
+    await siteConfigs.upsert('logoPath', publicPath);
     return res.json({ message: 'Logo uploaded', path: publicPath });
   } catch (err) {
     console.error('logo upload error:', err.message);
@@ -48,7 +48,7 @@ router.post('/logo', requireAuth, requireRole('admin'), upload.single('logo'), a
 
 // Get site settings
 router.get('/', async (req, res) => {
-  const items = await SiteConfig.find().lean();
+  const items = await siteConfigs.list();
   const obj = {};
   items.forEach(i => obj[i.key] = i.value);
   res.json(obj);
@@ -62,7 +62,7 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
     const updates = [];
     for (const key of allowed) {
       if (body[key] !== undefined) {
-        updates.push(SiteConfig.findOneAndUpdate({ key }, { value: String(body[key] || '') }, { upsert: true }));
+        updates.push(siteConfigs.upsert(key, String(body[key] || '')));
       }
     }
     await Promise.all(updates);

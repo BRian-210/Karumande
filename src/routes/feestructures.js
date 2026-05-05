@@ -1,13 +1,13 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const FeeStructure = require('../models/FeeStructure');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { CLASS_LEVELS, TERMS } = require('../constants/school');
+const { feeStructures } = require('../data/repositories');
 
 const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
-  const items = await FeeStructure.find().sort({ classLevel: 1, term: 1 });
+  const items = await feeStructures.list();
   res.json(items);
 });
 
@@ -26,10 +26,10 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     try {
-      const item = await FeeStructure.create(req.body);
+      const item = await feeStructures.create(req.body);
       return res.status(201).json(item);
     } catch (err) {
-      if (err.code === 11000) return res.status(409).json({ message: 'Fee structure already exists for that class and term' });
+      if (err.code === '23505') return res.status(409).json({ message: 'Fee structure already exists for that class and term' });
       return res.status(500).json({ message: err.message });
     }
   }
@@ -44,11 +44,10 @@ router.patch(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const item = await FeeStructure.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const item = await feeStructures.update(req.params.id, req.body);
     if (!item) return res.status(404).json({ message: 'Fee structure not found' });
     return res.json(item);
   }
 );
 
 module.exports = router;
-

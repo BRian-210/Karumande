@@ -1,8 +1,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Announcement = require('../models/Announcement');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { validatePagination } = require('../constants/school');
+const { announcements } = require('../data/repositories');
 
 const router = express.Router();
 
@@ -10,20 +10,11 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const { page, limit, skip } = validatePagination(req.query);
 
-  const now = new Date();
-  const filter = {
-    active: true,
-    $and: [
-      { $or: [{ startDate: { $lte: now } }, { startDate: { $exists: false } }, { startDate: null }] },
-      { $or: [{ endDate: { $gte: now } }, { endDate: { $exists: false } }, { endDate: null }] }
-    ]
-  };
-  if (req.query.audience) filter.audience = req.query.audience;
-
-  const [items, total] = await Promise.all([
-    Announcement.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-    Announcement.countDocuments(filter)
-  ]);
+  const { items, total } = await announcements.listActive({
+    audience: req.query.audience,
+    limit,
+    offset: skip,
+  });
 
   res.json({ data: items, page, limit, total });
 });
@@ -43,7 +34,7 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const item = await Announcement.create(req.body);
+    const item = await announcements.create(req.body);
     return res.status(201).json(item);
   }
 );
@@ -62,7 +53,7 @@ router.patch(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const item = await Announcement.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const item = await announcements.update(req.params.id, req.body);
     if (!item) return res.status(404).json({ message: 'Announcement not found' });
     return res.json(item);
   }
@@ -73,7 +64,7 @@ router.post(
   requireAuth,
   requireRole('admin', 'teacher'),
   async (req, res) => {
-    const item = await Announcement.findByIdAndUpdate(req.params.id, { active: false }, { new: true });
+    const item = await announcements.update(req.params.id, { active: false });
     if (!item) return res.status(404).json({ message: 'Announcement not found' });
     return res.json(item);
   }
@@ -82,7 +73,7 @@ router.post(
 // Allow admins to permanently delete an announcement
 router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const item = await Announcement.findByIdAndDelete(req.params.id);
+    const item = await announcements.delete(req.params.id);
     if (!item) return res.status(404).json({ message: 'Announcement not found' });
     return res.json({ message: 'Announcement deleted' });
   } catch (err) {

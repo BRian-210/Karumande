@@ -11,7 +11,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-const { connectDB } = require('./src/config/db');
+const { connectDB, disconnectDB } = require('./src/config/db');
 
 // Routes
 const authRoutes = require('./src/routes/auth');
@@ -280,8 +280,8 @@ const startServer = async () => {
         server.close((err) => (err ? reject(err) : resolve()));
       });
       console.log('HTTP server closed.');
-      await require('mongoose').connection.close();
-      console.log('MongoDB connection closed.');
+      await disconnectDB();
+      console.log('Database connection closed.');
       process.exit(0);
     };
 

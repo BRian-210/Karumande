@@ -1,4 +1,4 @@
-const FeeBalance = require('../models/Bill'); // Assuming Bill model will be used for fees
+const { bills } = require('../data/repositories');
 
 exports.updateFeeBalance = async (req, res) => {
     try {
@@ -9,23 +9,29 @@ exports.updateFeeBalance = async (req, res) => {
         // For simplicity, let's assume we're updating a 'balance' field in the Bill model.
         // In a real application, you'd likely create a new transaction record.
 
-        let bill = await FeeBalance.findOne({ student: studentId });
+        let bill = await bills.findOne({ studentId });
 
         if (!bill) {
             return res.status(404).json({ message: 'Bill not found for this student.' });
         }
 
+        let amountPaid = Number(bill.amountPaid || 0);
+        let balance = Number(bill.balance || 0);
+
         if (type === 'credit') {
-            bill.amountPaid += amount;
-            bill.balance -= amount; // Assuming balance is total - amountPaid
+            amountPaid += Number(amount);
+            balance -= Number(amount);
         } else if (type === 'debit') {
-            bill.amountPaid -= amount;
-            bill.balance += amount;
+            amountPaid -= Number(amount);
+            balance += Number(amount);
         } else {
             return res.status(400).json({ message: 'Invalid transaction type.' });
         }
 
-        await bill.save();
+        amountPaid = Math.max(amountPaid, 0);
+        balance = Math.max(balance, 0);
+        const status = balance === 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'pending';
+        bill = await bills.update(bill.id, { amountPaid, balance, status });
 
         res.status(200).json({ message: 'Fee balance updated successfully.', bill });
 
@@ -40,7 +46,7 @@ exports.getFeeBalance = async (req, res) => {
     try {
         const { studentId } = req.params;
 
-        const bill = await FeeBalance.findOne({ student: studentId }).populate('student');
+        const bill = await bills.findOne({ studentId });
 
         if (!bill) {
             return res.status(404).json({ message: 'Bill not found for this student.' });

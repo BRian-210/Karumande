@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { users } = require('../data/repositories');
 
 async function requireAuth(req, res, next) {
   // Check Authorization header first
@@ -58,7 +58,7 @@ async function enforceMustChangePassword(req, res, next) {
     const isChangePasswordRoute = req.path === '/change-password' || req.originalUrl.endsWith('/auth/change-password');
     if (isChangePasswordRoute) return next();
 
-    const user = await User.findById(req.user.id).select('mustChangePassword');
+    const user = await users.findById(req.user.id);
     if (user && user.mustChangePassword) {
       return res.status(403).json({ message: 'Password change required. Please change your password to continue.' });
     }
