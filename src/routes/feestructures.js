@@ -26,10 +26,17 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     try {
+      const existing = await feeStructures.findOne({
+        classLevel: req.body.classLevel,
+        term: req.body.term,
+      });
+      if (existing) {
+        return res.status(409).json({ message: 'Fee structure already exists for that class and term' });
+      }
+
       const item = await feeStructures.create(req.body);
       return res.status(201).json(item);
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ message: 'Fee structure already exists for that class and term' });
       return res.status(500).json({ message: err.message });
     }
   }

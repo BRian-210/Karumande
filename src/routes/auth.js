@@ -1,209 +1,71 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
+
 const { requireAuth } = require('../middleware/auth');
 const { users, students } = require('../data/repositories');
 
 const router = express.Router();
 
 /* ======================================================
-   VALIDATION RULES
+   HELPER: Send Reset Email
+====================================================== */
+async function sendResetEmail(email, name, resetLink) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD
+      }
+    });
+
+    await transporter.sendMail({
+      from: `"Karumande School" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Reset Your Password - Karumande School",
+      html: `
+        <h2>Hello ${name || 'User'},</h2>
+        <p>You requested to reset your password.</p>
+        <p>Click the link below to set a new password:</p>
+        <a href="${resetLink}" style="background:#28a745;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
+          Reset Password
+        </a>
+        <p><strong>This link will expire in 1 hour.</strong></p>
+        <p>If you didn't request this, please ignore this email.</p>
+        <hr>
+        <p>Karumande School Management System</p>
+      `
+    });
+    return true;
+  } catch (err) {
+    console.error('Email sending failed:', err);
+    return false;
+  }
+}
+
+/* ======================================================
+   VALIDATION
 ====================================================== */
 
-const registerValidation = [
-  body('name').trim().notEmpty().withMessage('Name is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role')
-    .optional()
-    .isIn(['parent', 'teacher', 'admin'])
-    .withMessage('Invalid role'),
-];
-
-// Allow either email or admissionNo for login
 const loginValidation = [
   body('password').notEmpty().withMessage('Password is required'),
   body().custom((value, { req }) => {
     if (!req.body.email && !req.body.admissionNo) {
       throw new Error('Either email or admissionNo is required');
     }
-    if (req.body.email) {
-      const email = req.body.email.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        throw new Error('A valid email is required');
-      }
-    }
     return true;
   }),
 ];
 
 /* ======================================================
-   REGISTER (PARENTS ONLY)
+   LOGIN
 ====================================================== */
-
-router.post('/register', registerValidation, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { name, email, password } = req.body;
-
-  const exists = await users.findByEmail(email.toLowerCase());
-  if (exists) {
-    return res.status(409).json({ message: 'Email already registered' });
-  }
-
-  const user = await users.create({
-    name,
-    email: email.toLowerCase(),
-    passwordHash: password,
-    role: 'parent',
-  });
-
-  res.status(201).json({
-    message: 'Parent registered successfully',
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-    },
-  });
-});
-
-/* ======================================================
-   CREATE TEACHER (ADMIN ONLY)
-====================================================== */
-
-router.post(
-  '/create-teacher',
-  requireAuth,
-  [
-    body('name').trim().notEmpty(),
-    body('email').isEmail(),
-    body('password').isLength({ min: 6 }),
-  ],
-  async (req, res) => {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { name, email, password } = req.body;
-
-    const exists = await users.findByEmail(email.toLowerCase());
-    if (exists) {
-      return res.status(409).json({ message: 'Email already exists' });
-    }
-
-    const teacher = await users.create({
-      name,
-      email: email.toLowerCase(),
-      passwordHash: password,
-      role: 'teacher',
-      mustChangePassword: true,
-    });
-
-    res.status(201).json({
-      message: 'Teacher created successfully',
-      teacher: {
-        id: teacher.id,
-        name: teacher.name,
-        email: teacher.email,
-        role: teacher.role,
-      },
-    });
-  }
-);
-
-/* ======================================================
-   CREATE ADMIN (REQUIRES INVITE CODE)
-====================================================== */
-
-router.post(
-  '/create-admin',
-  [
-    body('name').trim().notEmpty(),
-    body('email').isEmail(),
-    body('password').isLength({ min: 6 }),
-    body('inviteCode').trim().notEmpty(),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { name, email, password, inviteCode } = req.body;
-    if (!process.env.ADMIN_INVITE_CODE) {
-      return res.status(500).json({ message: 'ADMIN_INVITE_CODE is not configured' });
-    }
-    const adminCount = await users.countActiveAdmins();
-
-    if (adminCount > 0) {
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-      if (!token) {
-        return res.status(403).json({ message: 'Admin authentication required' });
-      }
-
-      let payload;
-      try {
-        payload = jwt.verify(token, process.env.JWT_SECRET);
-      } catch (err) {
-        return res.status(401).json({ message: 'Invalid or expired token' });
-      }
-
-      const requesterId = payload.sub || payload.id || payload.userId;
-      const requester = await users.findById(requesterId);
-      if (!requester || !requester.isActive || requester.role !== 'admin') {
-        return res.status(403).json({ message: 'Admin authentication required' });
-      }
-    }
-
-    // Check invite code
-    if (inviteCode !== process.env.ADMIN_INVITE_CODE) {
-      return res.status(403).json({ message: 'Invalid invite code' });
-    }
-
-    const exists = await users.findByEmail(email.toLowerCase());
-    if (exists) {
-      return res.status(409).json({ message: 'Email already exists' });
-    }
-
-    const admin = await users.create({
-      name,
-      email: email.toLowerCase(),
-      passwordHash: password,
-      role: 'admin',
-      mustChangePassword: true,
-    });
-
-    res.status(201).json({
-      message: 'Admin created successfully',
-      admin: {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-      },
-    });
-  }
-);
-
-/* ======================================================
-   LOGIN (EMAIL OR ADMISSION NUMBER)
-====================================================== */
-
 router.post('/login', loginValidation, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -213,130 +75,167 @@ router.post('/login', loginValidation, async (req, res) => {
   const { email, password, admissionNo } = req.body;
   let user = null;
 
-  if (admissionNo) {
-    const search = admissionNo.toString().trim();
-    const student = await students.findByAdmissionNumber(search);
-
-    if (!student) {
-      return res.status(401).json({ message: 'Invalid admission number or password' });
+  try {
+    if (admissionNo) {
+      const student = await students.findByAdmissionNumber(admissionNo.trim());
+      if (!student) return res.status(401).json({ message: 'Invalid admission number or password' });
+      user = await users.findById(student.parent || student.parent_id, { includePasswordHash: true });
+    } else {
+      user = await users.findByEmail(email?.toLowerCase(), { includePasswordHash: true });
     }
-
-    user = await users.findById(
-      typeof student.parent === 'object' ? student.parent.id : student.parent,
-      { includePasswordHash: true }
-    );
-
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'Invalid admission number or password' });
-    }
-
-    // Audit log
-    try {
-      const logsDir = path.join(__dirname, '../../logs');
-      const auditFile = path.join(logsDir, 'auth_audit.log');
-
-      fs.mkdirSync(logsDir, { recursive: true });
-      fs.appendFileSync(
-        auditFile,
-        JSON.stringify({
-          event: 'login_by_admission',
-          admissionNo: search,
-          parentEmail: user.email,
-          ip: req.ip,
-          time: new Date().toISOString(),
-        }) + '\n'
-      );
-    } catch (err) {
-      console.error('Audit log error:', err.message);
-    }
-  } else {
-    user = await users.findByEmail(email.toLowerCase(), { includePasswordHash: true });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    const validPassword = await bcrypt.compare(password, user.passwordHash || '');
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, email: user.email, name: user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    await users.updateLastLogin(user.id);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        mustChangePassword: user.mustChangePassword || false,
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
-
-  const validPassword = await bcrypt.compare(password, user.passwordHash || '');
-  if (!validPassword) {
-    return res.status(401).json({ message: 'Invalid email or password' });
-  }
-
-  const token = jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
-
-  await users.updateLastLogin(user.id);
-
-  res.json({
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-      mustChangePassword: user.mustChangePassword,
-    },
-  });
-});
-
-/* ======================================================
-   CURRENT USER
-====================================================== */
-
-router.get('/me', requireAuth, async (req, res) => {
-  const user = await users.findById(req.user.id);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-  res.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-      mustChangePassword: user.mustChangePassword,
-    },
-  });
 });
 
 /* ======================================================
    CHANGE PASSWORD
 ====================================================== */
-
 router.post(
   '/change-password',
   requireAuth,
   [
     body('currentPassword').notEmpty(),
-    body('newPassword').isLength({ min: 6 }),
+    body('newPassword').isLength({ min: 8 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { currentPassword, newPassword } = req.body;
 
-    // We need the password hash → include it explicitly
-    const user = await users.findById(req.user.id, { includePasswordHash: true });
+    try {
+      const user = await users.findById(req.user.id, { includePasswordHash: true });
+      if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      const match = await bcrypt.compare(currentPassword, user.passwordHash || '');
+      if (!match) return res.status(401).json({ message: 'Current password is incorrect' });
+
+      await users.updatePassword(req.user.id, newPassword, { mustChangePassword: false });
+
+      res.json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Failed to change password' });
     }
-
-    const match = await bcrypt.compare(currentPassword, user.passwordHash || '');
-    if (!match) {
-      return res.status(401).json({ message: 'Current password is incorrect' });
-    }
-
-    await users.updatePassword(user.id, newPassword, { mustChangePassword: false });
-
-    res.json({ message: 'Password changed successfully' });
   }
 );
+
+/* ======================================================
+   FORGOT PASSWORD
+====================================================== */
+router.post('/forgot-password', [
+  body('email').isEmail().withMessage('Valid email is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email } = req.body;
+
+  try {
+    const user = await users.findByEmail(email.toLowerCase());
+
+    if (!user || !user.isActive) {
+      return res.json({ 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+    await users.update(user.id, {
+      password_reset_token: resetToken,
+      password_reset_expires: resetExpires
+    });
+
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5432'}/reset-password.html?token=${resetToken}`;
+
+    await sendResetEmail(user.email, user.name, resetLink);
+
+    res.json({
+      message: "If an account with that email exists, a password reset link has been sent."
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: "Something went wrong. Please try again later." });
+  }
+});
+
+/* ======================================================
+   RESET PASSWORD
+====================================================== */
+router.post('/reset-password', [
+  body('token').notEmpty().withMessage('Token is required'),
+  body('newPassword').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { token, newPassword } = req.body;
+
+  try {
+    const user = await users.findByResetToken(token);
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset link." });
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await users.update(user.id, {
+      passwordHash,
+      password_reset_token: null,
+      password_reset_expires: null,
+      mustChangePassword: false
+    });
+
+    res.json({
+      success: true,
+      message: "Password reset successfully. You can now login."
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+});
 
 module.exports = router;

@@ -36,16 +36,14 @@ This application has been optimized to handle over 10,000 concurrent users witho
 
 ### Prerequisites
 - Node.js >= 18.0.0
-- PostgreSQL / Supabase
+- MongoDB (with connection pooling enabled)
 
 ### Environment Variables
 Set the following in your `.env` file:
 ```
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=postgresql://postgres.your-project-id:your-password@aws-0-region.pooler.supabase.com:6543/postgres
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+MONGO_URI=mongodb://localhost:27017/karumande
 JWT_SECRET=your-secret-key
 # ... other existing variables
 ```
@@ -80,14 +78,14 @@ Use any external load balancer or hosting platform that can forward traffic to y
 
 For very high loads (>10,000 concurrent users):
 
-1. **Use Supabase** or another managed PostgreSQL service
-2. **Tune connection pooling** for read/write traffic
-3. **Add read replicas** if your hosting/database plan supports them
+1. **Use MongoDB Atlas** or a managed MongoDB service
+2. **Enable read replicas** for read-heavy operations
+3. **Shard the database** if data grows significantly
 
 ### Monitoring
 
 - Use your host or platform monitoring tools
-- Monitor PostgreSQL: use Supabase metrics or your provider's Postgres dashboard
+- Monitor MongoDB: Use MongoDB Atlas dashboard or `mongosh --eval "db.serverStatus()"`
 - Set up application monitoring (e.g., New Relic, DataDog)
 
 ### Troubleshooting
@@ -95,7 +93,7 @@ For very high loads (>10,000 concurrent users):
 - **High CPU**: Check for infinite loops or heavy computations
 - **High Memory**: Monitor for memory leaks and restart unhealthy processes with your host tooling
 - **Slow Responses**: Check database indexes and query performance
-- **Connection Issues**: Verify PostgreSQL connection limits and pool settings
+- **Connection Issues**: Verify MongoDB connection limits
 
 ## Performance Benchmarks
 

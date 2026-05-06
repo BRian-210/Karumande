@@ -10,25 +10,46 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { Router } = require('express');
 
 const { connectDB, disconnectDB } = require('./src/config/db');
 
+function unavailableRoute(name, error) {
+  const router = Router();
+  router.use((req, res) => {
+    console.warn(`Route "${name}" is unavailable: ${error.message}`);
+    return res.status(501).json({
+      message: `${name} route is not available in this build yet.`,
+    });
+  });
+  return router;
+}
+
+function loadRoute(modulePath, name) {
+  try {
+    return require(modulePath);
+  } catch (error) {
+    console.warn(`Failed to load ${name} from ${modulePath}: ${error.message}`);
+    return unavailableRoute(name, error);
+  }
+}
+
 // Routes
-const authRoutes = require('./src/routes/auth');
-const studentRoutes = require('./src/routes/students');
-const billRoutes = require('./src/routes/bills');
-const paymentRoutes = require('./src/routes/payments');
-const feeStructureRoutes = require('./src/routes/feestructures');
-const resultRoutes = require('./src/routes/results');
-const announcementRoutes = require('./src/routes/announcements');
-const contentRoutes = require('./src/routes/content');
-const reportRoutes = require('./src/routes/reports');
-const admissionRoutes = require('./src/routes/admissions');
-const teachersRoutes = require('./src/routes/teachers');
-const settingsRoutes = require('./src/routes/settings');
-const galleryRoutes = require('./src/routes/gallery');
-const contactRoutes = require('./src/routes/contact');
-const feeBalanceRoutes = require('./src/routes/feeBalances');
+const authRoutes = loadRoute('./src/routes/auth', 'auth');
+const studentRoutes = loadRoute('./src/routes/students', 'students');
+const billRoutes = loadRoute('./src/routes/bills', 'bills');
+const paymentRoutes = loadRoute('./src/routes/payments', 'payments');
+const feeStructureRoutes = loadRoute('./src/routes/feestructures', 'fee structures');
+const resultRoutes = loadRoute('./src/routes/results', 'results');
+const announcementRoutes = loadRoute('./src/routes/announcements', 'announcements');
+const contentRoutes = loadRoute('./src/routes/content', 'content');
+const reportRoutes = loadRoute('./src/routes/reports', 'reports');
+const admissionRoutes = loadRoute('./src/routes/admissions', 'admissions');
+const teachersRoutes = loadRoute('./src/routes/teachers', 'teachers');
+const settingsRoutes = loadRoute('./src/routes/settings', 'settings');
+const galleryRoutes = loadRoute('./src/routes/gallery', 'gallery');
+const contactRoutes = loadRoute('./src/routes/contact', 'contact');
+const feeBalanceRoutes = loadRoute('./src/routes/feeBalances', 'fee balances');
 
 // Middleware
 const { requireAuth, requireRole, enforceMustChangePassword } = require('./src/middleware/auth');

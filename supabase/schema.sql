@@ -6,7 +6,7 @@ create table if not exists public.users (
   email text not null unique,
   phone text,
   password_hash text not null,
-  role text not null default 'student' check (role in ('admin', 'parent', 'teacher', 'student', 'accountant')),
+  role text not null default 'student' check (role in ('admin', 'parent', 'teacher', 'student')),
   children jsonb not null default '[]'::jsonb,
   password_reset_token text,
   password_reset_expires timestamptz,
@@ -98,7 +98,6 @@ create table if not exists public.payments (
 
 create index if not exists idx_payments_merchant_request_id on public.payments(merchant_request_id);
 create index if not exists idx_payments_checkout_request_id on public.payments(checkout_request_id);
-create unique index if not exists uq_payments_checkout_request_id on public.payments(checkout_request_id);
 
 create table if not exists public.results (
   id uuid primary key default gen_random_uuid(),

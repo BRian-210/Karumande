@@ -2,9 +2,10 @@
 
 require('dotenv').config();
 const readline = require('readline');
+const bcrypt = require('bcryptjs');
 
-const { connectDB, disconnectDB } = require('../src/config/db');
-const { users } = require('../src/data/repositories');
+const { connectDB } = require('../src/config/db');
+const User = require('../src/models/User');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -19,7 +20,7 @@ async function main() {
   try {
     console.log('Connecting to database...');
     await connectDB();
-    console.log('Connected to PostgreSQL\n');
+    console.log('Connected to MongoDB\n');
 
     // Get email & password from env or prompt
     let email = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
@@ -48,7 +49,7 @@ async function main() {
     }
 
     // Check if user already exists
-    const existing = await users.findByEmail(email);
+    const existing = await User.findOne({ email });
     if (existing) {
       console.log(`\nUser already exists:`);
       console.log(`  Email: ${existing.email}`);
@@ -59,15 +60,18 @@ async function main() {
       process.exit(0);
     }
 
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 12);
+
     // Create admin user
-    const admin = await users.create({
+    const admin = await User.create({
       name: process.env.ADMIN_NAME || 'School Administrator',
       email,
-      passwordHash: password,
+      passwordHash,
       role: 'admin',
       phone: process.env.ADMIN_PHONE || null,
       isActive: true,
-      mustChangePassword: true,
+      mustChangePassword: false, // Admin doesn't need to change on first login
     });
 
     console.log('\nAdmin account created successfully! 🎉');
@@ -82,15 +86,11 @@ async function main() {
 
     console.log(`\nLogin at: http://localhost:5432/admin/login.html`);
 
-    await disconnectDB();
     rl.close();
     process.exit(0);
   } catch (error) {
     console.error('\nFailed to create admin account:');
     console.error(error.message || error);
-    try {
-      await disconnectDB();
-    } catch (_) {}
     rl.close();
     process.exit(1);
   }

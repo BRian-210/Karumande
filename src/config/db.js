@@ -3,14 +3,17 @@ const postgres = require('postgres');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.SUPABASE_DB_URL ||
+  process.env.POSTGRES_URL;
 
 if (!connectionString) {
-  console.error('❌ DATABASE_URL is missing in .env file');
+  console.error('❌ DATABASE_URL, SUPABASE_DB_URL, or POSTGRES_URL is missing in .env file');
   process.exit(1);
 }
 
-console.log('✅ DATABASE_URL loaded successfully');
+console.log('✅ PostgreSQL connection string loaded successfully');
 
 // ========================
 // Simple postgres client (for quick queries)
@@ -45,6 +48,7 @@ async function connectDB() {
   const client = await pool.connect();
   client.release();
   console.log('✅ Database Pool Connected Successfully');
+  await testConnection();
   return pool;
 }
 
@@ -63,7 +67,6 @@ function getDB() {
   return pool;
 }
 
-// Test connection
 async function testConnection() {
   try {
     const [result] = await sql`SELECT current_database() as db`;
@@ -72,8 +75,6 @@ async function testConnection() {
     console.error('❌ Test connection failed:', err.message);
   }
 }
-
-testConnection();
 
 // ========================
 // Exports

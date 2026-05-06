@@ -7,8 +7,9 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "create-admin": "node scripts/create_admin.js",
+    "seed": "node scripts/seed.js",
     "create-teacher": "node scripts/create_teacher.js",
-    "seed-test-data": "node scripts/create_test_data.js"
+    "seed-teachers": "node scripts/seed_teachers.js"
   },
   "keywords": [
     "school",

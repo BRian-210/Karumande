@@ -1,6 +1,6 @@
 # Supabase Migration
 
-This project previously used MongoDB with Mongoose. The runtime API layer now targets PostgreSQL/Supabase instead of MongoDB.
+This project previously used MongoDB with Mongoose. The database bootstrap has been moved to PostgreSQL so the app can target a Supabase database.
 
 ## Environment
 
@@ -18,6 +18,6 @@ Set these values in your `.env` file:
 2. Paste the contents of `supabase/schema.sql`.
 3. Run the script once to create the base tables, indexes, and `updated_at` triggers.
 
-## Current status
+## Important note
 
-The main Express runtime and helper/admin scripts have been moved to Postgres-backed repositories, and the old unused `src/routes/change-pasword.js` route has been removed.
+The app code still contains Mongoose-style model usage in the route layer. The new Postgres foundation is now in place, but each model and route needs to be moved from Mongoose queries to Supabase/Postgres queries before the application is fully database-runtime compatible.

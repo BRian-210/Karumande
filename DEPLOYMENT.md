@@ -36,14 +36,14 @@ node scripts/load_test.js http://localhost:3000 50 15
 
 - Start with small concurrency (10-100) and increase until you find the breaking point. Run tests against a staging host, not production.
 
-## Backup (PostgreSQL / Supabase)
+## Backup (MongoDB)
 
-- A backup script is available at `scripts/backup_postgres.sh`. It uses `pg_dump` to create timestamped archives and prunes older backups.
-- Ensure `pg_dump` is installed and the backup directory is writable by the user running the cron job.
+- A backup script is available at `scripts/backup_mongo.sh`. It uses `mongodump` to create timestamped archives and prunes older backups.
+- Ensure `mongodump` is installed (part of MongoDB Database Tools) and the backup directory is writable by the user running the cron job.
 - Example cron (daily at 02:30):
 
 ```cron
-30 2 * * * /home/$(whoami)/Karumande/scripts/backup_postgres.sh >> /var/log/postgres-backup.log 2>&1
+30 2 * * * /home/$(whoami)/Karumande/scripts/backup_mongo.sh >> /var/log/mongo-backup.log 2>&1
 ```
 
 ## Monitoring & Alerts
@@ -68,4 +68,4 @@ journalctl -u your-app-service -n 200
 - Common mitigations:
 	- Scale horizontally to more hosts behind a load balancer.
 	- Tune OS file descriptor limits and host-level networking settings.
-	- Verify PostgreSQL connection pool size and increase if needed.
+	- Verify MongoDB connection pool size and increase if needed.

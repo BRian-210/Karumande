@@ -1,41 +1,35 @@
 require('dotenv').config();
-const { connectDB, disconnectDB } = require('../src/config/db');
-const { users } = require('../src/data/repositories');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User'); // Adjust path if needed
 
 async function createTeacher() {
   try {
-    await connectDB();
-    console.log('Connected to PostgreSQL');
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Connected to database');
 
-    const existing = await users.findByEmail('david.mwangi@karumandelink.ac.ke');
-    if (existing) {
-      console.log('Teacher already exists: david.mwangi@karumandelink.ac.ke');
-      await disconnectDB();
-      process.exit(0);
-    }
+    const hashedPassword = await bcrypt.hash('Teacher2026!', 12);
 
-    await users.create({
+    const teacher = await User.create({
       name: 'Mr. David Mwangi',
       email: 'david.mwangi@karumandelink.ac.ke',
-      passwordHash: 'Teacher2026!',
+      passwordHash: hashedPassword,
       role: 'teacher',
-      mustChangePassword: true,
-      isActive: true,
+      employeeId: 'TCH/003',
+      subjects: ['Mathematics', 'Physics'],
+      classesAssigned: ['Grade 8', 'Grade 9']
     });
 
     console.log('✅ Teacher account created successfully!');
     console.log('Login Details:');
     console.log('   Email: david.mwangi@karumandelink.ac.ke');
     console.log('   Password: Teacher2026!');
-    console.log('   Role: teacher');
+    console.log('   Employee ID: TCH/003');
+    console.log('   Assigned: Mathematics (Grade 8), Physics (Grade 9)');
 
-    await disconnectDB();
     process.exit(0);
   } catch (error) {
     console.error('Error:', error.message);
-    try {
-      await disconnectDB();
-    } catch (_) {}
     process.exit(1);
   }
 }

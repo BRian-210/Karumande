@@ -307,10 +307,7 @@ const users = {
   async findById(id, options = {}) {
     const includePasswordHash = options.includePasswordHash === true;
     const result = await query(
-      `select *
-       from public.users
-       where id = $1
-       limit 1`,
+      `select * from public.users where id = $1 limit 1`,
       [id]
     );
     const user = mapUser(result.rows[0]);
@@ -322,10 +319,7 @@ const users = {
   async findByEmail(email, options = {}) {
     const includePasswordHash = options.includePasswordHash === true;
     const result = await query(
-      `select *
-       from public.users
-       where lower(email) = lower($1)
-       limit 1`,
+      `select * from public.users where lower(email) = lower($1) limit 1`,
       [email]
     );
     const user = mapUser(result.rows[0]);
@@ -334,12 +328,29 @@ const users = {
     return user;
   },
 
+  // ✅ NEW: Added for password reset
+  async findByResetToken(token) {
+    if (!token) return null;
+    
+    const result = await query(
+      `SELECT * FROM public.users 
+       WHERE password_reset_token = $1 
+         AND password_reset_expires > NOW()
+         AND is_active = true
+       LIMIT 1`,
+      [token]
+    );
+    
+    return mapUser(result.rows[0]);
+  },
+
   async create(data, client = null) {
     const executor = client || db();
     const passwordHash = await bcrypt.hash(data.passwordHash, 12);
     const result = await executor.query(
       `insert into public.users (
-         name, email, phone, password_hash, role, children, is_active, must_change_password, profile_photo
+         name, email, phone, password_hash, role, children, is_active, 
+         must_change_password, profile_photo
        ) values ($1, lower($2), $3, $4, $5, $6::jsonb, $7, $8, $9)
        returning *`,
       [
@@ -357,6 +368,44 @@ const users = {
     return mapUser(result.rows[0]);
   },
 
+  async update(id, patch, client = null) {
+    const executor = client || db();
+    const fields = [];
+    const values = [id];
+    let index = 2;
+
+    const map = {
+      name: 'name',
+      email: 'email',
+      phone: 'phone',
+      role: 'role',
+      children: 'children',
+      isActive: 'is_active',
+      mustChangePassword: 'must_change_password',
+      profilePhoto: 'profile_photo',
+      password_reset_token: 'password_reset_token',
+      password_reset_expires: 'password_reset_expires',
+    };
+
+    for (const [key, column] of Object.entries(map)) {
+      if (patch[key] !== undefined) {
+        fields.push(`${column} = $${index}`);
+        values.push(key === 'children' ? JSON.stringify(patch[key] || []) : patch[key]);
+        index += 1;
+      }
+    }
+
+    if (fields.length === 0) return this.findById(id);
+
+    const result = await executor.query(
+      `update public.users
+       set ${fields.join(', ')}
+       where id = $1
+       returning *`,
+      values
+    );
+    return mapUser(result.rows[0]);
+  },
   async countActiveAdmins() {
     const result = await query(
       `select count(*)::int as count

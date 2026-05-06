@@ -9,13 +9,11 @@ const router = express.Router();
 // Public fetch (optionally filter audience) with active window + pagination
 router.get('/', async (req, res) => {
   const { page, limit, skip } = validatePagination(req.query);
-
   const { items, total } = await announcements.listActive({
     audience: req.query.audience,
     limit,
     offset: skip,
   });
-
   res.json({ data: items, page, limit, total });
 });
 

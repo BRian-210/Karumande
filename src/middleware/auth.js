@@ -36,20 +36,24 @@ async function requireAuth(req, res, next) {
 
 function requireRole(...roles) {
   return (req, res, next) => {
-    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const role = req.user.role;
+
+    // 👇 Admin bypass
+    if (role === 'admin') {
+      return next();
+    }
+
     if (!roles.includes(role)) {
       return res.status(403).json({ message: `Requires role: ${roles.join(', ')}` });
     }
+
     next();
   };
 }
-
-/**
- * Middleware to enforce that users with `mustChangePassword` set to true
- * must change their password before accessing protected endpoints.
- * Allows the `/api/auth/change-password` route to proceed so they can update it.
- */
 async function enforceMustChangePassword(req, res, next) {
   try {
     if (!req.user || !req.user.id) return next();
@@ -74,7 +78,6 @@ module.exports = {
   requireAuth,
   requireRole,
   enforceMustChangePassword,
-  // backward-compatible aliases used across the codebase
   authenticate: requireAuth,
   authorize: requireRole,
 };

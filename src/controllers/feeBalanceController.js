@@ -9,31 +9,36 @@ exports.updateFeeBalance = async (req, res) => {
         // For simplicity, let's assume we're updating a 'balance' field in the Bill model.
         // In a real application, you'd likely create a new transaction record.
 
-        let bill = await bills.findOne({ studentId });
+        const bill = await bills.findOne({ studentId });
 
         if (!bill) {
             return res.status(404).json({ message: 'Bill not found for this student.' });
         }
 
-        let amountPaid = Number(bill.amountPaid || 0);
-        let balance = Number(bill.balance || 0);
+        const amountNumber = Number(amount);
+        if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+            return res.status(400).json({ message: 'Amount must be a positive number.' });
+        }
+
+        let nextAmountPaid = Number(bill.amountPaid || 0);
+        let nextBalance = Number(bill.balance || 0);
 
         if (type === 'credit') {
-            amountPaid += Number(amount);
-            balance -= Number(amount);
+            nextAmountPaid += amountNumber;
+            nextBalance -= amountNumber;
         } else if (type === 'debit') {
-            amountPaid -= Number(amount);
-            balance += Number(amount);
+            nextAmountPaid -= amountNumber;
+            nextBalance += amountNumber;
         } else {
             return res.status(400).json({ message: 'Invalid transaction type.' });
         }
 
-        amountPaid = Math.max(amountPaid, 0);
-        balance = Math.max(balance, 0);
-        const status = balance === 0 ? 'paid' : amountPaid > 0 ? 'partial' : 'pending';
-        bill = await bills.update(bill.id, { amountPaid, balance, status });
+        const updatedBill = await bills.update(bill.id, {
+            amountPaid: nextAmountPaid,
+            balance: nextBalance,
+        });
 
-        res.status(200).json({ message: 'Fee balance updated successfully.', bill });
+        res.status(200).json({ message: 'Fee balance updated successfully.', bill: updatedBill });
 
     } catch (error) {
         console.error('Error updating fee balance:', error);
