@@ -12,47 +12,38 @@ const { users, students } = require('../data/repositories');
 
 const router = express.Router();
 
+
 /* ======================================================
-   HELPER: Send Reset Email
+ HELPER: Send Reset Email
 ====================================================== */
+// Helper: Send Reset Email using Brevo
+// Helper: Send Reset Email using Brevo (Fixed)
 async function sendResetEmail(email, name, resetLink) {
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD
+        user: process.env.BREVO_EMAIL,
+        pass: process.env.BREVO_SMTP_KEY,
       },
-      tls: {
-        rejectUnauthorized: false   // Helps with Render
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      tls: { rejectUnauthorized: false }
     });
 
     await transporter.sendMail({
-      from: `"Karumande School" <${process.env.EMAIL_USER}>`,
+      from: `"Karumande School" <${process.env.BREVO_EMAIL}>`,
       to: email,
       subject: "Reset Your Password - Karumande School",
-      html: `
-        <h2>Hello ${name || 'User'},</h2>
-        <p>You requested to reset your password.</p>
-        <p>Click the button below to set a new password:</p>
-        <a href="${resetLink}" style="background:#28a745;color:white;padding:14px 24px;text-decoration:none;border-radius:6px;font-weight:bold;">
-          Reset Password
-        </a>
-        <p style="margin-top:20px;"><strong>This link expires in 1 hour.</strong></p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <hr>
-        <p>Karumande School Management System</p>
-      `
+      html: `... your html ...`
     });
 
-    console.log(`✅ Reset email sent to: ${email}`);
+    console.log(`✅ Password reset email sent to ${email}`);
     return true;
+
   } catch (err) {
-    console.error('❌ Email sending failed:', err.message);
+    console.error('❌ Brevo Email failed:', err.message);
+    // Don't crash the server
     return false;
   }
 }
