@@ -1,5 +1,3 @@
-// reset-password.js
-
 // Toggle password visibility
 document.querySelectorAll('.toggle-password').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -24,7 +22,10 @@ form.addEventListener('submit', async e => {
   const confirmPassword = document.getElementById('confirmPassword').value.trim();
   const token = new URLSearchParams(window.location.search).get('token');
 
-  // Validation
+  // Debug logging
+  console.log('Token from URL:', token ? token.substring(0, 15) + '...' : 'MISSING');
+  console.log('New Password Length:', newPassword.length);
+
   if (!token) {
     msg.textContent = "Invalid or expired reset link. Please request a new one.";
     msg.className = 'message error';
@@ -52,28 +53,30 @@ form.addEventListener('submit', async e => {
     const res = await fetch('/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, newPassword })
+      body: JSON.stringify({ 
+        token, 
+        newPassword 
+      })
     });
 
     const data = await res.json();
+
+    console.log('Server Response:', res.status, data);   // ← Debug
 
     if (res.ok) {
       msg.textContent = "✅ Password reset successful! Redirecting to login...";
       msg.className = 'message success';
 
-      // Clear the token from URL for security
-      window.history.replaceState({}, document.title, window.location.pathname);
-
       setTimeout(() => {
         window.location.href = '/login.html';
-      }, 1800);
+      }, 2000);
     } else {
-      msg.textContent = data.message || "Failed to reset password. The link may have expired.";
+      msg.textContent = data.message || "Failed to reset password.";
       msg.className = 'message error';
     }
   } catch (err) {
     console.error('Reset password error:', err);
-    msg.textContent = "Network error. Please check your connection and try again.";
+    msg.textContent = "Network error. Please try again.";
     msg.className = 'message error';
   } finally {
     submitBtn.disabled = false;

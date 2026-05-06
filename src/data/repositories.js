@@ -329,19 +329,20 @@ const users = {
   },
 
   // ✅ NEW: Added for password reset
-  async findByResetToken(token) {
+   async findByResetToken(token) {
     if (!token) return null;
-    
+
     const result = await query(
       `SELECT * FROM public.users 
        WHERE password_reset_token = $1 
-         AND password_reset_expires > NOW()
-         AND is_active = true
+         AND password_reset_expires > NOW() 
+         AND is_active = true 
        LIMIT 1`,
       [token]
     );
-    
-    return mapUser(result.rows[0]);
+
+    const user = mapUser(result.rows[0]);
+    return user;
   },
 
   async create(data, client = null) {
@@ -1395,34 +1396,48 @@ const admissions = {
     const list = await this.list({ id, limit: 1, offset: 0 });
     return list[0] || null;
   },
-  async update(id, patch, client = null) {
+    async update(id, patch, client = null) {
     const executor = client || db();
     const fields = [];
     const values = [id];
     let index = 2;
+
     const map = {
-      status: 'status',
-      reviewedAt: 'reviewed_at',
-      reviewedBy: 'reviewed_by',
-      student: 'student_id',
-      admissionNumber: 'admission_number',
-      phone: 'phone',
+      name: 'name',
       email: 'email',
+      phone: 'phone',
+      role: 'role',
+      children: 'children',
+      isActive: 'is_active',
+      mustChangePassword: 'must_change_password',
+      profilePhoto: 'profile_photo',
+      password_reset_token: 'password_reset_token',
+      password_reset_expires: 'password_reset_expires',
     };
-    Object.entries(map).forEach(([key, column]) => {
+
+    for (const [key, column] of Object.entries(map)) {
       if (patch[key] !== undefined) {
-        fields.push(`${column} = $${index++}`);
-        values.push(patch[key]);
+        fields.push(`${column} = $${index}`);
+        values.push(key === 'children' ? JSON.stringify(patch[key] || []) : patch[key]);
+        index += 1;
       }
-    });
-    if (!fields.length) {
+    }
+
+    if (fields.length === 0) {
       return this.findById(id);
     }
-    const result = await executor.query(`update public.admissions set ${fields.join(', ')} where id = $1 returning *`, values);
-    return mapAdmission(result.rows[0]);
+
+    const result = await executor.query(
+      `UPDATE public.users 
+       SET ${fields.join(', ')} 
+       WHERE id = $1 
+       RETURNING *`,
+      values
+    );
+
+    return mapUser(result.rows[0]);
   },
 };
-
 module.exports = {
   withTransaction,
   query,

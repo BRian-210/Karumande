@@ -80,8 +80,8 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 // Verify transporter on startup
 if (process.env.NODE_ENV !== 'test') {
   if (transporter) {
-    const smtpHost = process.env.EMAIL_SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 465;
+    const smtpHost = process.env.EMAIL_SMTP_HOST || 'smtp-relay.brevo.com';
+    const smtpPort = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 587;
     const smtpSecure = process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : true;
     transporter.verify((error) => {
       if (error) {
