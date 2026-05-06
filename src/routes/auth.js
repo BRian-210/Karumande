@@ -22,7 +22,13 @@ async function sendResetEmail(email, name, resetLink) {
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_APP_PASSWORD
-      }
+      },
+      tls: {
+        rejectUnauthorized: false   // Helps with Render
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
     await transporter.sendMail({
@@ -32,19 +38,21 @@ async function sendResetEmail(email, name, resetLink) {
       html: `
         <h2>Hello ${name || 'User'},</h2>
         <p>You requested to reset your password.</p>
-        <p>Click the link below to set a new password:</p>
-        <a href="${resetLink}" style="background:#28a745;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
+        <p>Click the button below to set a new password:</p>
+        <a href="${resetLink}" style="background:#28a745;color:white;padding:14px 24px;text-decoration:none;border-radius:6px;font-weight:bold;">
           Reset Password
         </a>
-        <p><strong>This link will expire in 1 hour.</strong></p>
+        <p style="margin-top:20px;"><strong>This link expires in 1 hour.</strong></p>
         <p>If you didn't request this, please ignore this email.</p>
         <hr>
         <p>Karumande School Management System</p>
       `
     });
+
+    console.log(`✅ Reset email sent to: ${email}`);
     return true;
   } catch (err) {
-    console.error('Email sending failed:', err);
+    console.error('❌ Email sending failed:', err.message);
     return false;
   }
 }

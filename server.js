@@ -58,8 +58,8 @@ const { requireAuth, requireRole, enforceMustChangePassword } = require('./src/m
 const authenticate = requireAuth;
 const authorize = requireRole;
 const mustChangePassword = enforceMustChangePassword;
-
 const app = express();
+app.set('trust proxy', 1);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
