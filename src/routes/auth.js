@@ -2,13 +2,13 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
 
 const { requireAuth } = require('../middleware/auth');
 const { users, students } = require('../data/repositories');
+const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
 
@@ -16,31 +16,14 @@ const router = express.Router();
 /* ======================================================
  HELPER: Send Reset Email
 ====================================================== */
-// Helper: Send Reset Email using Brevo (Fixed)
+// Helper: Send reset email using the shared SMTP helper
 async function sendResetEmail(email, name, resetLink) {
   try {
     console.log(`Attempting to send email to: ${email}`);
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,                    // Important: false for STARTTLS
-      auth: {
-        user: process.env.BREVO_EMAIL,
-        pass: process.env.BREVO_SMTP_KEY,
-      },
-      tls: {
-        rejectUnauthorized: false
-      },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 30000,
-    });
-
-    await transporter.sendMail({
-      from: `"Karumande School" <${process.env.BREVO_EMAIL}>`,
+    const result = await sendEmail({
       to: email,
-      subject: "Reset Your Password - Karumande School",
+      subject: 'Reset Your Password - Karumande School',
       html: `
         <h2>Hello ${name || 'User'},</h2>
         <p>You requested a password reset.</p>
@@ -52,14 +35,19 @@ async function sendResetEmail(email, name, resetLink) {
         <p>If you didn't request this, please ignore this email.</p>
         <hr>
         <p>Karumande School Management System</p>
-      `
+      `,
+      text: `Hello ${name || 'User'},\n\nYou requested a password reset.\n\nUse this link to set a new password:\n${resetLink}\n\nThis link will expire in 1 hour.\nIf you didn't request this, please ignore this email.\n\nKarumande School Management System`,
     });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Unknown email delivery error');
+    }
 
     console.log(`✅ Email sent successfully to ${email}`);
     return true;
 
   } catch (err) {
-    console.error('❌ Brevo Email Error:', err.message);
+    console.error('Reset email error:', err.message);
     return false;
   }
 }
@@ -189,20 +177,41 @@ router.post('/forgot-password', [
       });
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    const existingResetExpires = user.passwordResetExpires ? new Date(user.passwordResetExpires) : null;
+    const hasReusableToken =
+      !!user.passwordResetToken &&
+      existingResetExpires instanceof Date &&
+      !Number.isNaN(existingResetExpires.getTime()) &&
+      existingResetExpires > new Date();
 
-    await users.update(user.id, {
-      password_reset_token: resetToken,
-      password_reset_expires: resetExpires
-    });
+    const resetToken = hasReusableToken
+      ? user.passwordResetToken
+      : crypto.randomBytes(32).toString('hex');
+    const resetExpires = hasReusableToken
+      ? existingResetExpires
+      : new Date(Date.now() + 60 * 60 * 1000);
+
+    if (!hasReusableToken) {
+      await users.update(user.id, {
+        password_reset_token: resetToken,
+        password_reset_expires: resetExpires
+      });
+    }
 
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5432'}/reset-password.html?token=${resetToken}`;
 
-    await sendResetEmail(user.email, user.name, resetLink);
-
     res.json({
       message: "If an account with that email exists, a password reset link has been sent."
+    });
+
+    setImmediate(async () => {
+      const sent = await sendResetEmail(user.email, user.name, resetLink);
+      if (!sent) {
+        console.warn('Password reset email delivery failed after response was sent.', {
+          userId: user.id,
+          email: user.email,
+        });
+      }
     });
 
   } catch (error) {

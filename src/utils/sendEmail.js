@@ -1,21 +1,41 @@
 // utils/sendEmail.js
 const nodemailer = require('nodemailer');
 
+const hasGmailStyleConfig = () =>
+  !!(process.env.EMAIL_USER?.trim() && process.env.EMAIL_APP_PASSWORD?.trim());
+
+const hasBrevoConfig = () =>
+  !!(process.env.BREVO_EMAIL?.trim() && process.env.BREVO_SMTP_KEY?.trim());
+
+const usingBrevoDefaults = () =>
+  !hasGmailStyleConfig() &&
+  hasBrevoConfig() &&
+  !process.env.EMAIL_SMTP_HOST;
+
+const DEFAULT_SMTP_HOST = usingBrevoDefaults() ? 'smtp-relay.brevo.com' : 'smtp.gmail.com';
+const DEFAULT_SMTP_PORT = usingBrevoDefaults() ? 587 : 465;
+const DEFAULT_SMTP_SECURE = usingBrevoDefaults() ? false : true;
+
 const createTransporter = () => {
-  const user = process.env.EMAIL_USER?.trim();
+  const useBrevo = usingBrevoDefaults();
+  const user = useBrevo
+    ? process.env.BREVO_EMAIL?.trim()
+    : process.env.EMAIL_USER?.trim() || process.env.BREVO_EMAIL?.trim();
   // Support app-passwords pasted with spaces (e.g. "abcd efgh ijkl mnop")
-  const rawPass = process.env.EMAIL_APP_PASSWORD || '';
+  const rawPass = useBrevo
+    ? process.env.BREVO_SMTP_KEY || ''
+    : process.env.EMAIL_APP_PASSWORD || process.env.BREVO_SMTP_KEY || '';
   const pass = rawPass ? String(rawPass).trim().replace(/\s+/g, '') : '';
 
   if (!user || !pass) {
-    console.warn('Email configuration incomplete: EMAIL_USER or EMAIL_APP_PASSWORD missing. Email sending is disabled.');
+    console.warn('Email configuration incomplete: no valid SMTP credentials found. Email sending is disabled.');
     return null;
   }
 
   return nodemailer.createTransport({
-    host: process.env.EMAIL_SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 465,
-    secure: process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : true,
+    host: process.env.EMAIL_SMTP_HOST || DEFAULT_SMTP_HOST,
+    port: process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : DEFAULT_SMTP_PORT,
+    secure: process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : DEFAULT_SMTP_SECURE,
     auth: { user, pass },
     tls: {
       rejectUnauthorized: false, // optional
@@ -33,7 +53,11 @@ const createTransporter = () => {
 const transporter = createTransporter();
 
 const sendEmail = async ({ to, subject, html, text, replyTo }) => {
-  if (!to || !subject || !html) {
+  const trimmedTo = String(to || '').trim();
+  const trimmedSubject = String(subject || '').trim();
+  const trimmedHtml = String(html || '').trim();
+
+  if (!trimmedTo || !trimmedSubject || !trimmedHtml) {
     const err = 'Missing required email fields: to, subject, or html';
     console.warn('Email not sent:', err);
     return { success: false, error: err };
@@ -48,11 +72,13 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
   const mailOptions = {
     from: {
       name: 'Karumande School',
-      address: process.env.EMAIL_USER,
+      address: usingBrevoDefaults()
+        ? process.env.BREVO_EMAIL || process.env.EMAIL_USER
+        : process.env.EMAIL_USER || process.env.BREVO_EMAIL,
     },
-    to: to.trim(),
-    subject: subject.trim(),
-    html: html.trim(),
+    to: trimmedTo,
+    subject: trimmedSubject,
+    html: trimmedHtml,
     text: text?.trim(),
     ...(replyTo ? { replyTo: replyTo.trim() } : {}),
   };
@@ -80,9 +106,9 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 // Verify transporter on startup
 if (process.env.NODE_ENV !== 'test') {
   if (transporter) {
-    const smtpHost = process.env.EMAIL_SMTP_HOST || 'smtp-relay.brevo.com';
-    const smtpPort = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 587;
-    const smtpSecure = process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : true;
+    const smtpHost = process.env.EMAIL_SMTP_HOST || DEFAULT_SMTP_HOST;
+    const smtpPort = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : DEFAULT_SMTP_PORT;
+    const smtpSecure = process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : DEFAULT_SMTP_SECURE;
     transporter.verify((error) => {
       if (error) {
         console.error('Email transporter configuration error:', error, {

@@ -384,6 +384,7 @@ const users = {
       isActive: 'is_active',
       mustChangePassword: 'must_change_password',
       profilePhoto: 'profile_photo',
+      passwordHash: 'password_hash',
       password_reset_token: 'password_reset_token',
       password_reset_expires: 'password_reset_expires',
     };

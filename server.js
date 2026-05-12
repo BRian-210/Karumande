@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Router } = require('express');
@@ -25,7 +26,20 @@ function unavailableRoute(name, error) {
   return router;
 }
 
-function loadRoute(modulePath, name) {
+function routeModuleExists(modulePath) {
+  const absolutePath = path.resolve(__dirname, modulePath);
+  return (
+    fs.existsSync(absolutePath) ||
+    fs.existsSync(`${absolutePath}.js`) ||
+    fs.existsSync(path.join(absolutePath, 'index.js'))
+  );
+}
+
+function loadRoute(modulePath, name, { optional = false } = {}) {
+  if (optional && !routeModuleExists(modulePath)) {
+    return unavailableRoute(name, new Error(`Missing route module: ${modulePath}`));
+  }
+
   try {
     return require(modulePath);
   } catch (error) {
@@ -36,16 +50,16 @@ function loadRoute(modulePath, name) {
 
 // Routes
 const authRoutes = loadRoute('./src/routes/auth', 'auth');
-const studentRoutes = loadRoute('./src/routes/students', 'students');
-const billRoutes = loadRoute('./src/routes/bills', 'bills');
-const paymentRoutes = loadRoute('./src/routes/payments', 'payments');
+const studentRoutes = loadRoute('./src/routes/students', 'students', { optional: true });
+const billRoutes = loadRoute('./src/routes/bills', 'bills', { optional: true });
+const paymentRoutes = loadRoute('./src/routes/payments', 'payments', { optional: true });
 const feeStructureRoutes = loadRoute('./src/routes/feestructures', 'fee structures');
-const resultRoutes = loadRoute('./src/routes/results', 'results');
+const resultRoutes = loadRoute('./src/routes/results', 'results', { optional: true });
 const announcementRoutes = loadRoute('./src/routes/announcements', 'announcements');
 const contentRoutes = loadRoute('./src/routes/content', 'content');
-const reportRoutes = loadRoute('./src/routes/reports', 'reports');
-const admissionRoutes = loadRoute('./src/routes/admissions', 'admissions');
-const teachersRoutes = loadRoute('./src/routes/teachers', 'teachers');
+const reportRoutes = loadRoute('./src/routes/reports', 'reports', { optional: true });
+const admissionRoutes = loadRoute('./src/routes/admissions', 'admissions', { optional: true });
+const teachersRoutes = loadRoute('./src/routes/teachers', 'teachers', { optional: true });
 const settingsRoutes = loadRoute('./src/routes/settings', 'settings');
 const galleryRoutes = loadRoute('./src/routes/gallery', 'gallery');
 const contactRoutes = loadRoute('./src/routes/contact', 'contact');
