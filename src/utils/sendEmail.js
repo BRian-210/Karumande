@@ -1,42 +1,24 @@
 // utils/sendEmail.js
 const nodemailer = require('nodemailer');
 
-const hasGmailStyleConfig = () =>
-  !!(process.env.EMAIL_USER?.trim() && process.env.EMAIL_APP_PASSWORD?.trim());
-
-const hasBrevoConfig = () =>
-  !!(process.env.BREVO_EMAIL?.trim() && process.env.BREVO_SMTP_KEY?.trim());
-
-const usingBrevoDefaults = () =>
-  !hasGmailStyleConfig() &&
-  hasBrevoConfig() &&
-  !process.env.EMAIL_SMTP_HOST;
-
-const DEFAULT_SMTP_HOST = usingBrevoDefaults() ? 'smtp-relay.brevo.com' : 'smtp.gmail.com';
-const DEFAULT_SMTP_PORT = usingBrevoDefaults() ? 587 : 465;
-const DEFAULT_SMTP_SECURE = usingBrevoDefaults() ? false : true;
+const EMAIL_USER = process.env.EMAIL_USER?.trim() || process.env.BREVO_EMAIL?.trim() || '';
+const rawPass = process.env.EMAIL_APP_PASSWORD || process.env.BREVO_SMTP_KEY || '';
+const EMAIL_APP_PASSWORD = rawPass ? String(rawPass).trim().replace(/\s+/g, '') : '';
+const EMAIL_SMTP_HOST = process.env.EMAIL_SMTP_HOST?.trim() || 'smtp.gmail.com';
+const EMAIL_SMTP_PORT = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : 465;
+const EMAIL_SMTP_SECURE = process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : true;
 
 const createTransporter = () => {
-  const useBrevo = usingBrevoDefaults();
-  const user = useBrevo
-    ? process.env.BREVO_EMAIL?.trim()
-    : process.env.EMAIL_USER?.trim() || process.env.BREVO_EMAIL?.trim();
-  // Support app-passwords pasted with spaces (e.g. "abcd efgh ijkl mnop")
-  const rawPass = useBrevo
-    ? process.env.BREVO_SMTP_KEY || ''
-    : process.env.EMAIL_APP_PASSWORD || process.env.BREVO_SMTP_KEY || '';
-  const pass = rawPass ? String(rawPass).trim().replace(/\s+/g, '') : '';
-
-  if (!user || !pass) {
+  if (!EMAIL_USER || !EMAIL_APP_PASSWORD) {
     console.warn('Email configuration incomplete: no valid SMTP credentials found. Email sending is disabled.');
     return null;
   }
 
   return nodemailer.createTransport({
-    host: process.env.EMAIL_SMTP_HOST || DEFAULT_SMTP_HOST,
-    port: process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : DEFAULT_SMTP_PORT,
-    secure: process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : DEFAULT_SMTP_SECURE,
-    auth: { user, pass },
+    host: EMAIL_SMTP_HOST,
+    port: EMAIL_SMTP_PORT,
+    secure: EMAIL_SMTP_SECURE,
+    auth: { user: EMAIL_USER, pass: EMAIL_APP_PASSWORD },
     tls: {
       rejectUnauthorized: false, // optional
     },
@@ -72,9 +54,7 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
   const mailOptions = {
     from: {
       name: 'Karumande School',
-      address: usingBrevoDefaults()
-        ? process.env.BREVO_EMAIL || process.env.EMAIL_USER
-        : process.env.EMAIL_USER || process.env.BREVO_EMAIL,
+      address: EMAIL_USER,
     },
     to: trimmedTo,
     subject: trimmedSubject,
@@ -106,15 +86,12 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 // Verify transporter on startup
 if (process.env.NODE_ENV !== 'test') {
   if (transporter) {
-    const smtpHost = process.env.EMAIL_SMTP_HOST || DEFAULT_SMTP_HOST;
-    const smtpPort = process.env.EMAIL_SMTP_PORT ? Number(process.env.EMAIL_SMTP_PORT) : DEFAULT_SMTP_PORT;
-    const smtpSecure = process.env.EMAIL_SMTP_SECURE ? process.env.EMAIL_SMTP_SECURE === 'true' : DEFAULT_SMTP_SECURE;
     transporter.verify((error) => {
       if (error) {
         console.error('Email transporter configuration error:', error, {
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpSecure,
+          host: EMAIL_SMTP_HOST,
+          port: EMAIL_SMTP_PORT,
+          secure: EMAIL_SMTP_SECURE,
           hint:
             error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED'
               ? 'Cannot reach SMTP (firewall, wrong host/port, or blocked outbound). Try EMAIL_SMTP_PORT=587 and EMAIL_SMTP_SECURE=false for STARTTLS, or allow outbound SMTP from this network.'
